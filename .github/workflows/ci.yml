@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10  # reads .python-version (3.12)
+      - uses: astral-sh/setup-uv@v10.3.0  # exact version: setup-uv publishes no v10 alias; reads .python-version
       - name: Install dependencies from uv.lock
         working-directory: backend
         run: uv sync --locked
@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.3.0
       - uses: actions/setup-node@v7
         with:
           node-version: 24
