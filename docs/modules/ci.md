@@ -33,11 +33,13 @@ should only be merged when all four are green.
 - `actionlint` on the workflow: no findings.
 - Every job's commands pass locally (`make lint`, `make test`, `make openapi` twice → byte-identical files).
 - `backend/tests/unit/test_no_network.py` proves sockets are blocked.
-- **Not yet verified on GitHub**: needs the first push. gitleaks was not run locally (Docker was not running).
+- **Green on GitHub** for PR #1 (all 4 jobs): https://github.com/DivyeshKumarPamarthy/link-guard/actions/runs/39012343803. The first run failed because `astral-sh/setup-uv` has no
+  `v10` tag; it is now pinned to `v10.3.0`.
 
 ## Known limitations
 
 - If the repo moves to a GitHub organisation, gitleaks-action needs a free licence key (`GITLEAKS_LICENSE` secret).
+- `ubuntu-latest` moves to Ubuntu 26 from 2026-10-19; if a job breaks then, pin `ubuntu-24.04`.
 - No branch protection yet; set "require status checks" on `main` in the GitHub settings.
 
 ## Likely viva questions (and your short answers)

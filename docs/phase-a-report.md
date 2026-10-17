@@ -19,7 +19,7 @@ first push (T0.8), owners must be named (T0.9), the team must draw and approve w
 | T0.5 Reason-code registry | 37 codes in YAML, strict validator, code-usage scan | ✅ Done |
 | T0.6 Database | SQLite `scans` table, WAL, `create_all` | ✅ Done |
 | T0.7 API + mock scanner | `POST`/`GET /api/scans`, 400/404/405/413/500, CORS, 127.0.0.1 | ✅ Done |
-| T0.8 CI | 4 GitHub Actions jobs; network blocked in tests | ⏳ Built; needs first push to go green |
+| T0.8 CI | 4 GitHub Actions jobs; network blocked in tests | ✅ Done: green on PR #1 |
 | T0.9 Docs scaffolding | Threat model, limitations, C1–C6 confirm list | ⏳ Built; owners pending D16 |
 | T0.10 Wireframes + tokens | Tailwind tokens, components, `/styleguide` | ⏳ Code done; team wireframes pending |
 | T0.11 Report skeleton | Draft notes for chapters 1–2 | ⏳ Draft; team rewrite + supervisor |
@@ -39,7 +39,7 @@ Everything below was run on 2026-10-17 on macOS (Apple Silicon), Python 3.12.12,
 | Real server: `uv run python -m app` | listens on `127.0.0.1:8000` only (checked with `lsof`); POST → poll → UNSAFE mock result |
 | Production web build | `/styleguide` absent from the bundle (0 occurrences); no CDN references; fonts bundled |
 | Visual check (headless Chrome) | `/styleguide` at 1440 px and a true 360 px: all 7 states in light and dark |
-| Not run | GitHub CI itself (needs a push); gitleaks locally (Docker daemon was off) |
+| GitHub CI on PR #1 | all 4 jobs green, gitleaks included (https://github.com/DivyeshKumarPamarthy/link-guard/actions/runs/39012343803) |
 
 Test count by area (backend): config 29 · safe/logging 30 · contract models 25 · OpenAPI 3 ·
 registry 27 · database 5 · API 34 · skeleton 12 · no-network 2 · hidden characters 2.
@@ -97,7 +97,7 @@ Each module has a note in `docs/modules/` (what, how, why, tests, limits, viva q
 
 ## 6. What the team must do to pass gate G0
 
-1. **Commit and push** (see section 7), then make sure all 4 CI jobs are green → tick T0.8.
+1. ~~Commit, push, CI green~~ done 2026-10-17 (PR #1); review and merge PR #1.
 2. **Decide D16** (owners of tracks A, B, C); fill the Owner lines in `docs/modules/*.md` and C1–C6.
 3. **Confirm or change C1–C6** and D23–D30; decide **D31** before T2.5; D15 (16th format) before T1.5.
 4. **Wireframes**: sketch the 7 screens into `docs/wireframes/`, approve them → tick T0.10.

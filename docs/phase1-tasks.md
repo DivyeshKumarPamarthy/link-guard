@@ -20,9 +20,9 @@ C = web, test kit, CI. Spec references point to `docs/phase1-spec.md`.
   Accept: write/read round-trip test on a temp DB.
 - [x] **T0.7 API + mock scanner (B).** `POST /api/scans` and `GET /api/scans/{id}` (spec §2) with a `MockExecutor` returning a fixed `UNSAFE` result after 300 ms; input error codes; `413`; CORS `*` without credentials; API binds to `127.0.0.1`.
   Accept: API tests for 202 → poll → done, 400 codes, 404 for an unknown id.
-- [ ] **T0.8 CI (C).** GitHub Actions: backend lint (ruff, mypy) + pytest with network disabled (`pytest-socket` or equivalent), web lint + tsc + vitest, contract check that `web/src/api/types.ts` is up to date with `openapi.json`, secret scanning.
+- [x] **T0.8 CI (C).** GitHub Actions: backend lint (ruff, mypy) + pytest with network disabled (`pytest-socket` or equivalent), web lint + tsc + vitest, contract check that `web/src/api/types.ts` is up to date with `openapi.json`, secret scanning.
   Accept: CI green on the skeleton.
-  *Status 2026-10-17: workflow written, actionlint clean, every job's commands pass locally. Not ticked until CI is green on GitHub after the first push.*
+  *Done 2026-10-17: all 4 jobs green on PR #1 (https://github.com/DivyeshKumarPamarthy/link-guard/actions/runs/39012343803).*
 - [ ] **T0.9 Docs scaffolding (all).** `docs/threat-model.md` (one page: assets, attackers, SSRF/DoS/XSS/log-leak mitigations, residual risks), `docs/limitations.md`, confirm or edit every **[CONFIRM]** item in the spec and record it in `docs/decisions.md`.
   Accept: no open **[CONFIRM]** without an owner and date in `decisions.md`.
   *Status 2026-10-17: threat model, limitations and C1–C6 written with dates. Not ticked: owners are TBD until D16 is decided, and the team has not confirmed the defaults.*
