@@ -1,0 +1,349 @@
+# LinkGuard reason-code registry (spec §8). Every reason code used in code must be here.
+#
+# Fields
+#   group            scoring group; the score takes the highest weight per group (spec §9)
+#   weight           >= 0, never negative. Non-risk codes have weight 0.
+#   severity         info | low | medium | high
+#   outcome          risk | info | unable | rejected | unsupported
+#   hard_min_verdict optional: the verdict is at least this when the code fires
+#   evidence         keys the detector must supply; templates may only use these keys
+#   message          one sentence shown in the "Why" list
+#   headline         shown at the top of the report when this is the top reason
+#
+# Weights are starter hypotheses (tuned in Phase F only). Rejected/unsupported codes carry
+# weight 0 and severity info (decision D26). Templates that say "a {detected_label}" need
+# labels that read correctly after "a" (decision D27).
+
+rules_version: "1.0.0"
+
+codes:
+  # --- risk: type and filename --------------------------------------------------------
+  TYPE_MISMATCH_EXEC:
+    group: type
+    weight: 70
+    severity: high
+    outcome: risk
+    hard_min_verdict: UNSAFE
+    evidence: [claimed_ext, detected, detected_label]
+    message: "The file is named .{claimed_ext} but its content is a {detected_label}."
+    headline: "Blocked: file named .{claimed_ext} is actually a {detected_label}"
+
+  EXT_DOUBLE:
+    group: type
+    weight: 40
+    severity: medium
+    outcome: risk
+    evidence: [decoy_ext, real_ext]
+    message: "The name ends in .{decoy_ext}.{real_ext}: it looks like a .{decoy_ext} file but is a .{real_ext} file."
+    headline: "Suspicious: the name hides a .{real_ext} file behind .{decoy_ext}"
+
+  EXT_SPOOFED_NAME:
+    group: type
+    weight: 40  # decision D12 (not in the plan)
+    severity: medium
+    outcome: risk
+    evidence: [characters]
+    message: "The file name contains hidden characters ({characters}) that can disguise its real extension."
+    headline: "Suspicious: the file name uses hidden characters to disguise its extension"
+
+  TYPE_POLYGLOT:
+    group: type
+    weight: 30  # decision D12 (not in the plan); P1
+    severity: medium
+    outcome: risk
+    evidence: [detected_label, second_label, offset]
+    message: "The file is a {detected_label} but also contains a {second_label} signature at byte {offset}."
+    headline: "Suspicious: the file is two formats at once"
+
+  TYPE_MISMATCH_TEXT:
+    group: type
+    weight: 20
+    severity: low
+    outcome: risk
+    evidence: [claimed_ext]
+    message: "The file is named .{claimed_ext} but its content is plain text."
+    headline: "The file named .{claimed_ext} is actually plain text"
+
+  TYPE_MISMATCH_OTHER:
+    group: type
+    weight: 15
+    severity: low
+    outcome: risk
+    evidence: [claimed_ext, detected_label]
+    message: "The file is named .{claimed_ext} but its content is a {detected_label}."
+    headline: "The file named .{claimed_ext} is actually a {detected_label}"
+
+  EXT_RISKY:
+    group: type
+    weight: 15
+    severity: low
+    outcome: risk
+    evidence: [ext]
+    message: "Files ending in .{ext} can run code on your computer."
+    headline: "Careful: .{ext} files can run code on your computer"
+
+  TYPE_CONTENT_TYPE_MISMATCH:
+    group: header
+    weight: 10
+    severity: low
+    outcome: risk
+    evidence: [content_type, detected_label]
+    message: "The server says this is {content_type}, but its content is a {detected_label}."
+    headline: "The server describes the file as {content_type}, but it is a {detected_label}"
+
+  # --- risk: redirects ---------------------------------------------------------------
+  REDIR_DOWNGRADE:
+    group: redirect
+    weight: 10
+    severity: low
+    outcome: risk
+    evidence: [hop]
+    message: "The link switched from a secure (https) to an insecure (http) connection at step {hop}."
+    headline: "The link drops to an insecure connection on the way"
+
+  REDIR_LONG_CHAIN:
+    group: redirect
+    weight: 10
+    severity: low
+    outcome: risk
+    evidence: [hops]
+    message: "The link went through {hops} redirects before reaching the file."
+    headline: "The link goes through an unusually long chain of redirects"
+
+  # --- info ----------------------------------------------------------------------------
+  REDIR_CROSS_DOMAIN:
+    group: redirect
+    weight: 0  # decision D8: informational
+    severity: info
+    outcome: info
+    evidence: [final_host]
+    message: "The link ended on a different site: {final_host}."
+    headline: "The link leads to a different site: {final_host}"
+
+  URL_HOMOGRAPH:
+    group: url
+    weight: 0  # P1
+    severity: info
+    outcome: info
+    evidence: [display_host, punycode_host]
+    message: "The address {display_host} uses look-alike characters; its real form is {punycode_host}."
+    headline: "The address uses look-alike characters"
+
+  LINK_CLOUD_SHARE_PAGE:
+    group: link
+    weight: 0  # P1
+    severity: info
+    outcome: info
+    evidence: [service]
+    message: "This is a {service} sharing page, not the file itself. Use the direct download link to check the file."
+    headline: "This is a {service} sharing page, not the file"
+
+  TYPE_EXEC_PROBABLE:
+    group: detect
+    weight: 0
+    severity: info
+    outcome: info
+    evidence: []
+    message: "The file starts like a Windows program (MZ), but the full program header was not in the part that was read."
+    headline: "The file is probably a Windows program"
+
+  TYPE_UNKNOWN:
+    group: detect
+    weight: 0
+    severity: info
+    outcome: info
+    evidence: []
+    message: "The file type could not be identified from its first bytes."
+    headline: "The file type could not be identified"
+
+  SCAN_PARTIAL:
+    group: scope
+    weight: 0
+    severity: info
+    outcome: info
+    evidence: [scope_label]
+    message: "Only part of the file was checked ({scope_label})."
+    headline: "Only part of the file was checked"
+
+  FETCH_UNEXPECTED_ENCODING:
+    group: fetch
+    weight: 0  # decision D10: a reliability signal, not risk
+    severity: info
+    outcome: info
+    evidence: [encoding]
+    message: "The server sent the file compressed ({encoding}) although LinkGuard asked for it uncompressed, so the check is less certain."
+    headline: "The server sent the file compressed, so the check is less certain"
+
+  # --- unable: missing evidence, never SAFE --------------------------------------------
+  LINK_IS_WEB_PAGE:
+    group: link
+    weight: 0
+    severity: info
+    outcome: unable
+    evidence: []
+    message: "This link opens a web page, not a downloadable file."
+    headline: "This link opens a web page, not a file"
+
+  FETCH_TIMEOUT:
+    group: fetch
+    weight: 0
+    severity: info
+    outcome: unable
+    evidence: []
+    message: "The server was too slow to answer, so the file could not be checked."
+    headline: "The server was too slow to check the file"
+
+  FETCH_INTERRUPTED:
+    group: fetch
+    weight: 0
+    severity: info
+    outcome: unable
+    evidence: []
+    message: "The server closed the connection before enough of the file arrived to check it."
+    headline: "The download was cut off before the file could be checked"
+
+  FETCH_EMPTY:
+    group: fetch
+    weight: 0
+    severity: info
+    outcome: unable
+    evidence: []
+    message: "The server sent an empty file (0 bytes)."
+    headline: "The server sent an empty file"
+
+  FETCH_AUTH_REQUIRED:
+    group: fetch
+    weight: 0
+    severity: info
+    outcome: unable
+    evidence: [status]
+    message: "The server answered {status}: the file needs a login or permission."
+    headline: "The file needs a login, so it could not be checked"
+
+  FETCH_RATE_LIMITED:
+    group: fetch
+    weight: 0
+    severity: info
+    outcome: unable
+    evidence: []
+    message: "The server answered 429: too many requests. Try again in a little while."
+    headline: "The server is limiting requests; try again later"
+
+  FETCH_HTTP_ERROR:
+    group: fetch
+    weight: 0
+    severity: info
+    outcome: unable
+    evidence: [status]
+    message: "The server answered {status}, so the file could not be fetched."
+    headline: "The server answered {status}, so the file could not be checked"
+
+  FETCH_TLS_ERROR:
+    group: fetch
+    weight: 0
+    severity: info
+    outcome: unable
+    evidence: []
+    message: "The secure connection failed: the site's certificate could not be verified."
+    headline: "The site's security certificate could not be verified"
+
+  FETCH_DNS_ERROR:
+    group: fetch
+    weight: 0
+    severity: info
+    outcome: unable
+    evidence: [host]
+    message: "The address {host} could not be found."
+    headline: "The address could not be found"
+
+  REDIR_LOOP:
+    group: redirect
+    weight: 0
+    severity: info
+    outcome: unable
+    evidence: []
+    message: "The link redirects in a loop and never reaches a file."
+    headline: "The link redirects in a loop"
+
+  REDIR_TOO_MANY:
+    group: redirect
+    weight: 0
+    severity: info
+    outcome: unable
+    evidence: [max_redirects]
+    message: "The link redirected more than {max_redirects} times, so LinkGuard stopped following it."
+    headline: "The link redirects too many times"
+
+  ANALYSIS_ERROR:
+    group: analysis
+    weight: 0
+    severity: info
+    outcome: unable
+    evidence: []
+    message: "Something went wrong while checking this link, so it was not marked safe."
+    headline: "The check could not be completed"
+
+  # --- rejected: unsafe to contact, no verdict -----------------------------------------
+  URL_PRIVATE_ADDRESS:
+    group: url
+    weight: 0
+    severity: info
+    outcome: rejected
+    evidence: []
+    message: "LinkGuard won't contact this address because it points inside a private network."
+    headline: "Not scanned: this address points inside a private network"
+
+  URL_USERINFO:
+    group: url
+    weight: 0
+    severity: info
+    outcome: rejected
+    evidence: []
+    message: "The link puts a user name before the address, a common trick to disguise where it really goes."
+    headline: "Not scanned: the link disguises its real address"
+
+  URL_PORT_BLOCKED:
+    group: url
+    weight: 0
+    severity: info
+    outcome: rejected
+    evidence: [port]
+    message: "LinkGuard only contacts standard web ports; this link uses port {port}."
+    headline: "Not scanned: the link uses an unusual port"
+
+  URL_SCHEME_UNSUPPORTED:
+    group: url
+    weight: 0
+    severity: info
+    outcome: rejected
+    evidence: [scheme]
+    message: "Links starting with {scheme}: are not web downloads, so LinkGuard won't open them."
+    headline: "Not scanned: {scheme}: links are not web downloads"
+
+  SSRF_BLOCKED_AT_HOP:
+    group: redirect
+    weight: 0
+    severity: info
+    outcome: rejected
+    evidence: [hop]
+    message: "A redirect at step {hop} pointed inside a private network, so LinkGuard stopped there."
+    headline: "Not scanned: the link redirects into a private network"
+
+  REDIR_BAD_TARGET:
+    group: redirect
+    weight: 0
+    severity: info
+    outcome: rejected
+    evidence: [scheme]
+    message: "The link redirects to a {scheme}: address, which LinkGuard won't follow."
+    headline: "Not scanned: the link redirects to a non-web address"
+
+  # --- unsupported: planned for a later phase ------------------------------------------
+  LINK_TYPE_UNSUPPORTED:
+    group: link
+    weight: 0
+    severity: info
+    outcome: unsupported
+    evidence: [link_kind]
+    message: "{link_kind} aren't supported yet; they are planned for a later phase."
+    headline: "{link_kind} aren't supported yet"

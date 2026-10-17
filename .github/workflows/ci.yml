@@ -1,0 +1,78 @@
+# LinkGuard CI (task T0.8). Every job must pass before a pull request is merged.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend lint + tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10  # reads .python-version (3.12)
+      - name: Install dependencies from uv.lock
+        working-directory: backend
+        run: uv sync --locked
+      - name: Lint (ruff, mypy)
+        run: make lint-backend
+      - name: Tests (network sockets blocked by pytest-socket)
+        run: make test-backend
+
+  web:
+    name: Web lint + typecheck + tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install dependencies from package-lock.json
+        working-directory: web
+        run: npm ci
+      - name: Lint (eslint, tsc)
+        run: make lint-web
+      - name: Tests (vitest)
+        run: make test-web
+
+  contract:
+    name: Contract check (OpenAPI and web types up to date)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install dependencies
+        run: make setup
+      - name: Regenerate OpenAPI and web types
+        run: make openapi
+      - name: Fail if the committed files differ from the generated ones
+        run: |
+          if [ -n "$(git status --porcelain -- backend/openapi.json web/src/api/types.ts)" ]; then
+            echo "::error::Contract files are out of date. Run 'make openapi' and commit the result."
+            git --no-pager diff -- backend/openapi.json web/src/api/types.ts
+            exit 1
+          fi
+
+  secrets:
+    name: Secret scanning (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # scan the whole history, not only the last commit
+      - uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # No GITLEAKS_LICENSE needed: the repo belongs to a personal account.

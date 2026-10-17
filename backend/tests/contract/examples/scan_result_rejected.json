@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0",
+  "scan_id": "5d4c3b2a-1f0e-4d9c-8b7a-6f5e4d3c2b1a",
+  "state": "done",
+  "status": "rejected",
+  "input_url": "http://169.254.169.254/latest/meta-data/",
+  "normalized_url": "http://169.254.169.254/latest/meta-data/",
+  "final_url": null,
+  "display_host": "169.254.169.254",
+  "punycode_host": "169.254.169.254",
+  "link_type": "http",
+  "verdict": null,
+  "display_verdict": "REJECTED",
+  "score": null,
+  "confidence": null,
+  "scope": { "mode": "none", "bytes_analyzed": 0, "total_bytes": null, "range_supported": false, "label": "Nothing was read" },
+  "headline": "Not scanned: this address points inside a private network",
+  "file": null,
+  "redirects": [],
+  "reasons": [
+    { "code": "URL_PRIVATE_ADDRESS", "severity": "info", "weight": 0, "group": "url",
+      "message": "LinkGuard won't contact this address because it points inside a private network.", "evidence": {} }
+  ],
+  "unavailable_signals": [],
+  "timings_ms": { "total": 3 },
+  "engine_version": "1.0.0",
+  "rules_version": "1.0.0",
+  "created_at": "2026-10-16T10:15:00Z",
+  "completed_at": "2026-10-16T10:15:00Z"
+}

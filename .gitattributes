@@ -1,0 +1,23 @@
+# Normalise line endings for text files
+* text=auto
+
+# Binary fixtures: never diff or convert line endings
+*.exe binary
+*.dll binary
+*.bin binary
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.zip binary
+*.7z binary
+*.rar binary
+*.gz binary
+*.mp3 binary
+*.mp4 binary
+*.docx binary
+*.xlsx binary
+*.msi binary
+*.torrent binary
+*.ico binary

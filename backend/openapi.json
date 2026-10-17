@@ -1,0 +1,868 @@
+{
+  "components": {
+    "schemas": {
+      "AddressClass": {
+        "enum": [
+          "public",
+          "private",
+          "blocked"
+        ],
+        "title": "AddressClass",
+        "type": "string"
+      },
+      "Confidence": {
+        "enum": [
+          "high",
+          "medium",
+          "low"
+        ],
+        "title": "Confidence",
+        "type": "string"
+      },
+      "DetectionConfidence": {
+        "enum": [
+          "certain",
+          "probable",
+          "unconfirmed"
+        ],
+        "title": "DetectionConfidence",
+        "type": "string"
+      },
+      "DisplayVerdict": {
+        "description": "What clients show. Computed by the backend only (decision D4).",
+        "enum": [
+          "SAFE",
+          "NO_ISSUES_IN_CHECKED_PART",
+          "SUSPICIOUS",
+          "UNSAFE",
+          "UNABLE_TO_VERIFY",
+          "REJECTED",
+          "UNSUPPORTED"
+        ],
+        "title": "DisplayVerdict",
+        "type": "string"
+      },
+      "ErrorBody": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          },
+          "schema_version": {
+            "const": "1.0",
+            "default": "1.0",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "error"
+        ],
+        "title": "ErrorBody",
+        "type": "object"
+      },
+      "ErrorCode": {
+        "description": "Error codes returned instead of a scan (spec \u00a72; decision D25 for the last four).",
+        "enum": [
+          "URL_EMPTY",
+          "URL_TOO_LONG",
+          "URL_MULTIPLE",
+          "SERVER_BUSY",
+          "INTERNAL_ERROR",
+          "INVALID_REQUEST",
+          "REQUEST_TOO_LARGE",
+          "NOT_FOUND",
+          "METHOD_NOT_ALLOWED"
+        ],
+        "title": "ErrorCode",
+        "type": "string"
+      },
+      "ErrorDetail": {
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ErrorCode"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorDetail",
+        "type": "object"
+      },
+      "Family": {
+        "description": "File family (spec \u00a77). `text` and `unknown` added by decision D24.",
+        "enum": [
+          "executable",
+          "archive",
+          "document",
+          "script",
+          "media",
+          "image",
+          "text",
+          "unknown"
+        ],
+        "title": "Family",
+        "type": "string"
+      },
+      "FileInfo": {
+        "description": "The claimed-vs-actual evidence for the file.",
+        "properties": {
+          "claimed_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claimed Name"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type"
+          },
+          "detected_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detected Label"
+          },
+          "detected_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detected Type"
+          },
+          "detection_confidence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DetectionConfidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "family": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Family"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "first_bytes_hex": {
+            "default": "",
+            "pattern": "^([0-9a-f]{2}){0,16}$",
+            "title": "First Bytes Hex",
+            "type": "string"
+          },
+          "name_source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NameSource"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "signature": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Signature"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "claimed_name",
+          "name_source",
+          "content_type",
+          "detected_type",
+          "detected_label",
+          "family",
+          "detection_confidence",
+          "first_bytes_hex",
+          "signature"
+        ],
+        "title": "FileInfo",
+        "type": "object"
+      },
+      "JsonValue": {},
+      "LinkType": {
+        "enum": [
+          "http",
+          "shortened",
+          "torrent",
+          "magnet",
+          "ftp",
+          "other"
+        ],
+        "title": "LinkType",
+        "type": "string"
+      },
+      "NameSource": {
+        "description": "Where the claimed filename came from, in priority order (spec \u00a77).",
+        "enum": [
+          "content-disposition",
+          "final-url",
+          "original-url"
+        ],
+        "title": "NameSource",
+        "type": "string"
+      },
+      "Reason": {
+        "description": "One finding. Unknown codes must be rendered as a generic card by clients.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "evidence": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "default": {},
+            "title": "Evidence",
+            "type": "object"
+          },
+          "group": {
+            "title": "Group",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/Severity"
+          },
+          "weight": {
+            "minimum": 0.0,
+            "title": "Weight",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "severity",
+          "weight",
+          "group",
+          "message",
+          "evidence"
+        ],
+        "title": "Reason",
+        "type": "object"
+      },
+      "RedirectHop": {
+        "properties": {
+          "address_class": {
+            "$ref": "#/components/schemas/AddressClass"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "status",
+          "address_class"
+        ],
+        "title": "RedirectHop",
+        "type": "object"
+      },
+      "ScanAccepted": {
+        "description": "202 response: the scan exists; poll GET /api/scans/{scan_id} for the result.",
+        "properties": {
+          "poll_after_ms": {
+            "exclusiveMinimum": 0.0,
+            "title": "Poll After Ms",
+            "type": "integer"
+          },
+          "scan_id": {
+            "format": "uuid",
+            "title": "Scan Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "1.0",
+            "default": "1.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/State"
+          }
+        },
+        "required": [
+          "schema_version",
+          "scan_id",
+          "state",
+          "poll_after_ms"
+        ],
+        "title": "ScanAccepted",
+        "type": "object"
+      },
+      "ScanRequest": {
+        "description": "Body of POST /api/scans. `url` is raw user text; the router cleans it.",
+        "properties": {
+          "url": {
+            "default": "",
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "title": "ScanRequest",
+        "type": "object"
+      },
+      "ScanResult": {
+        "description": "Body of GET /api/scans/{scan_id}. Outcome fields are null until state is `done`.",
+        "properties": {
+          "completed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Confidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "display_host": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Host"
+          },
+          "display_verdict": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DisplayVerdict"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "file": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FileInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "final_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Final Url"
+          },
+          "headline": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Headline"
+          },
+          "input_url": {
+            "title": "Input Url",
+            "type": "string"
+          },
+          "link_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LinkType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "normalized_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Normalized Url"
+          },
+          "punycode_host": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Punycode Host"
+          },
+          "reasons": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Reason"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasons"
+          },
+          "redirects": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/RedirectHop"
+            },
+            "title": "Redirects",
+            "type": "array"
+          },
+          "rules_version": {
+            "title": "Rules Version",
+            "type": "string"
+          },
+          "scan_id": {
+            "format": "uuid",
+            "title": "Scan Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "1.0",
+            "default": "1.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "scope": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Scope"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "score": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "state": {
+            "$ref": "#/components/schemas/State"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Status"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timings_ms": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timings Ms"
+          },
+          "unavailable_signals": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Unavailable Signals",
+            "type": "array"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Verdict"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "schema_version",
+          "scan_id",
+          "state",
+          "status",
+          "input_url",
+          "normalized_url",
+          "final_url",
+          "display_host",
+          "punycode_host",
+          "link_type",
+          "verdict",
+          "display_verdict",
+          "score",
+          "confidence",
+          "scope",
+          "headline",
+          "file",
+          "redirects",
+          "reasons",
+          "unavailable_signals",
+          "timings_ms",
+          "engine_version",
+          "rules_version",
+          "created_at",
+          "completed_at"
+        ],
+        "title": "ScanResult",
+        "type": "object"
+      },
+      "Scope": {
+        "description": "What was actually read. Every result states it (honesty rule).",
+        "properties": {
+          "bytes_analyzed": {
+            "minimum": 0.0,
+            "title": "Bytes Analyzed",
+            "type": "integer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/ScopeMode"
+          },
+          "range_supported": {
+            "title": "Range Supported",
+            "type": "boolean"
+          },
+          "total_bytes": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Bytes"
+          }
+        },
+        "required": [
+          "mode",
+          "bytes_analyzed",
+          "total_bytes",
+          "range_supported",
+          "label"
+        ],
+        "title": "Scope",
+        "type": "object"
+      },
+      "ScopeMode": {
+        "description": "How much of the file was actually read (decision D7 added `none`).",
+        "enum": [
+          "full",
+          "partial",
+          "metadata-only",
+          "none"
+        ],
+        "title": "ScopeMode",
+        "type": "string"
+      },
+      "Severity": {
+        "enum": [
+          "info",
+          "low",
+          "medium",
+          "high"
+        ],
+        "title": "Severity",
+        "type": "string"
+      },
+      "Signature": {
+        "description": "Which of the first 16 bytes identified the type (drives the hex-strip highlight).",
+        "properties": {
+          "length": {
+            "maximum": 16.0,
+            "minimum": 1.0,
+            "title": "Length",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "offset": {
+            "maximum": 15.0,
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "offset",
+          "length",
+          "name"
+        ],
+        "title": "Signature",
+        "type": "object"
+      },
+      "State": {
+        "description": "Where the scan is in its lifecycle. Outcome fields are null until `done`.",
+        "enum": [
+          "queued",
+          "running",
+          "done"
+        ],
+        "title": "State",
+        "type": "string"
+      },
+      "Status": {
+        "description": "How a finished scan ended (spec \u00a73).",
+        "enum": [
+          "completed",
+          "rejected",
+          "unsupported"
+        ],
+        "title": "Status",
+        "type": "string"
+      },
+      "Verdict": {
+        "enum": [
+          "SAFE",
+          "SUSPICIOUS",
+          "UNSAFE",
+          "UNABLE_TO_VERIFY"
+        ],
+        "title": "Verdict",
+        "type": "string"
+      }
+    }
+  },
+  "info": {
+    "summary": "Checks a download link before you download it.",
+    "title": "LinkGuard API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/scans": {
+      "post": {
+        "description": "Submit a link. Returns at once with a scan_id; poll GET /api/scans/{scan_id}.",
+        "operationId": "create_scan_api_scans_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "URL_EMPTY, URL_TOO_LONG, URL_MULTIPLE or INVALID_REQUEST"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Request body over the size limit"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "INTERNAL_ERROR (never a stack trace)"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "SERVER_BUSY (T2.4)"
+          }
+        },
+        "summary": "Create Scan"
+      }
+    },
+    "/api/scans/{scan_id}": {
+      "get": {
+        "description": "Poll one scan. Outcome fields stay null until state is \"done\".",
+        "operationId": "get_scan_api_scans__scan_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scan_id",
+            "required": true,
+            "schema": {
+              "title": "Scan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unknown scan_id"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "INTERNAL_ERROR (never a stack trace)"
+          }
+        },
+        "summary": "Get Scan"
+      }
+    }
+  }
+}
