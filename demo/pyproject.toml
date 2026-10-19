@@ -1,0 +1,43 @@
+[project]
+name = "linkguard-demo"
+version = "0.1.0"
+description = "Local demo server that imitates good, bad and broken download servers for LinkGuard tests."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "cryptography>=50.0.2",
+    "starlette>=1.9.0",
+    "uvicorn>=0.54.0",
+]
+
+[tool.uv]
+# An application we run, not a library we publish.
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+# Demo tests may talk to loopback (the demo listeners) but never to the internet.
+addopts = "--import-mode=importlib --allow-hosts=127.0.0.1"
+filterwarnings = [
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+
+[tool.mypy]
+strict = true
+files = ["demo_server", "tests"]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "mypy>=2.4.0",
+    "pytest>=9.1.1",
+    "pytest-socket>=0.8.1",
+    "ruff>=0.17.1",
+]
