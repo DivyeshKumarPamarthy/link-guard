@@ -122,6 +122,8 @@ make test-ssrf    # SSRF table only
 make test-e2e     # acceptance matrix against the demo server
 make samples      # regenerate samples via demo/make_samples.py
 make openapi      # export OpenAPI + regenerate web/src/api/types.ts
+make check-openapi # fail if openapi.json / types.ts are out of date (writes nothing)
+make test-loop    # unit tests for the automation loop (scripts/loop.py, docs/loop/README.md)
 make lint         # ruff + mypy (backend, demo), eslint + tsc (web)
 ```
 

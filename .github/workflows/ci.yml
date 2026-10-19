@@ -56,6 +56,15 @@ jobs:
       - name: Smoke tests (loopback only)
         run: make test-demo
 
+  loop:
+    name: Loop harness tests (git and claude faked)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.0
+      - name: Unit tests for scripts/loop.py
+        run: make test-loop
+
   contract:
     name: Contract check (OpenAPI and web types up to date)
     runs-on: ubuntu-latest
