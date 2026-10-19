@@ -1,14 +1,14 @@
 # Wireframes: draft for team review (T0.10)
 
-Status: **DRAFT, not approved.** Drafted by Claude Code on 2026-10-19 from
+Status: **Approved by the team on 2026-10-19** (reported by Divyesh). Drafted by Claude Code from
 `docs/ui-style-guide.md`, `docs/phase1-spec.md` §10 and the contract fields in §2.
-The team corrects these (edit this file, or put sketches/Figma exports next to it), then
-records approval at the bottom. T0.10 is ticked only after that.
+The **Decide:** questions were answered with the defaults in decision D33; change them there if
+the team prefers otherwise.
 
 How to read them: low fidelity, desktop width (content column max 720 px, left-aligned).
 `[ ... ]` = input or button, `( )` = icon, `‹ ›` = mono text (URLs, filenames, hex).
 Every screen keeps the same header so the user always sees where they are.
-**Decide:** lines are open questions for the team.
+**Decided:** lines record the answers (D33).
 
 ---
 
@@ -24,7 +24,7 @@ Runs on this computer only · engine 1.0.0 · rules 1.0.0   ← footer, small mu
 
 - Page padding 16 px (mobile), 32 px (desktop). No shadows; panels have a 1 px `line` border.
 - Results never show the scanned URL as a link: mono text plus a [ Copy URL ] button.
-- **Decide:** footer versions on every screen, or only inside report "Details"?
+- **Decided (D33):** versions only inside report "Details"; the footer keeps "Runs on this computer only".
 
 ---
 
@@ -52,7 +52,7 @@ Example links (demo profile only)                           ← spec §10
   URL_MULTIPLE "Paste one link at a time."); focus stays in the input.
 - [ Check link ] is disabled while a scan is in flight.
 - 360 px: input and button stack vertically, button full width.
-- **Decide:** the recent-scans list (P1, localStorage) goes below "What we check"?
+- **Decided (D33):** the recent-scans list (P1, localStorage) goes below "What we check".
 
 ## 2. Checking
 
@@ -63,7 +63,7 @@ Checking…  4 s                                              ← progress text,
 
 - Nothing else on the screen (style guide). Elapsed seconds update every second.
 - Polls `GET /api/scans/{id}` every `poll_after_ms`, backing off to 2 s.
-- **Decide:** show a [ Cancel ] link? (Only stops polling; the backend has no cancel.)
+- **Decided (D33):** no Cancel link: it would only stop polling while the scan keeps running, which is misleading.
 
 ## 3. Report (Safe / No issues in the checked part / Suspicious / Unsafe)
 
@@ -106,7 +106,7 @@ Where the link went                                        ← numbered list
   escaped (U+202E is displayed as the six visible characters backslash, u, 2, 0, 2, E).
 - IDN hosts show both forms: `bücher.example (xn--bcher-kva.example)`.
 - 360 px: the hex strip wraps to two lines of 8 bytes; redirect rows stack (URL on its own line).
-- **Decide:** show the score at all, or only in Details? (Guide puts it in Details.)
+- **Decided (D33):** the score appears only in Details, as the style guide shows.
 
 ## 4. Unable to verify
 
@@ -127,7 +127,7 @@ Where the link went            (if any hops were made)
 ```
 
 - The "what you can try" text depends on the reason code (404/410, 401/403, timeout, TLS,
-  web page, redirect loop). **Decide:** wording per code, in the registry or in the web app?
+  web page, redirect loop). **Decided (D33):** the hints are web-app copy keyed by reason code (the registry keeps one message per code).
 - Never says or implies "safe".
 
 ## 5. Rejected (blocked address)
@@ -177,7 +177,7 @@ Something went wrong on the LinkGuard server.
 Try again; if it keeps happening, check the server terminal.   [ Try again ]   ← 500
 ```
 
-- **Decide:** for 503, retry automatically after `Retry-After`, or wait for the user?
+- **Decided (D33):** no automatic retry; the user presses [ Try again ].
 
 ---
 
@@ -185,10 +185,10 @@ Try again; if it keeps happening, check the server terminal.   [ Try again ]   �
 
 | Screen | Changes requested | Approved by | Date |
 | --- | --- | --- | --- |
-| 1 Home | | | |
-| 2 Checking | | | |
-| 3 Report | | | |
-| 4 Unable to verify | | | |
-| 5 Rejected | | | |
-| 6 Unsupported | | | |
-| 7 Error / busy | | | |
+| 1 Home | None | Team (reported by Divyesh) | 2026-10-19 |
+| 2 Checking | None | Team (reported by Divyesh) | 2026-10-19 |
+| 3 Report | None | Team (reported by Divyesh) | 2026-10-19 |
+| 4 Unable to verify | None | Team (reported by Divyesh) | 2026-10-19 |
+| 5 Rejected | None | Team (reported by Divyesh) | 2026-10-19 |
+| 6 Unsupported | None | Team (reported by Divyesh) | 2026-10-19 |
+| 7 Error / busy | None | Team (reported by Divyesh) | 2026-10-19 |

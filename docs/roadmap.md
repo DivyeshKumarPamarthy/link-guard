@@ -9,7 +9,7 @@ decision, recorded as future work. **Nice** = only after every Must and Should i
 
 | Phase | When (assumed) | Status |
 | --- | --- | --- |
-| A Foundations | Semester 1, week 1 | Current |
+| A Foundations | Semester 1, week 1 | Done (2026-10-19) |
 | B Core scanner + web app | Semester 1, weeks 2–10 | Current |
 | C Chrome extension + UI polish | Semester 2, weeks 1–4 | Not started |
 | D Torrent + ZIP inspection | Semester 2, weeks 5–7 | Not started |

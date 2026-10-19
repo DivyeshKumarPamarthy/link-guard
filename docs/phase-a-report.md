@@ -1,7 +1,7 @@
 # Phase A report: Foundations (T0.1–T0.11)
 
 Date: 2026-10-17 · Built with Claude Code (decision D21: every change must be reviewed and
-understood by its track owner before merge) · Status: **code complete; gate G0 still needs team actions**
+understood by its track owner before merge) · Status: **Phase A done (2026-10-19)**
 
 ## 1. Summary
 
@@ -21,8 +21,8 @@ first push (T0.8), owners must be named (T0.9), the team must draw and approve w
 | T0.7 API + mock scanner | `POST`/`GET /api/scans`, 400/404/405/413/500, CORS, 127.0.0.1 | ✅ Done |
 | T0.8 CI | 4 GitHub Actions jobs; network blocked in tests | ✅ Done: green on PR #1 |
 | T0.9 Docs scaffolding | Threat model, limitations, C1–C6 confirm list | ✅ Done 2026-10-19: owner Divyesh (D16), C1–C6 confirmed (C3 waits on D15) |
-| T0.10 Wireframes + tokens | Tailwind tokens, components, `/styleguide` | ⏳ Code done; draft wireframes waiting for team approval (D32) |
-| T0.11 Report skeleton | Draft notes for chapters 1–2 | ⏳ Draft; team rewrite + supervisor |
+| T0.10 Wireframes + tokens | Tailwind tokens, components, `/styleguide` | ✅ Done 2026-10-19: wireframes approved (D32, D33) |
+| T0.11 Report skeleton | Draft notes for chapters 1–2 | ✅ Done 2026-10-19 (team approval reported by Divyesh); citations still to add |
 
 ## 2. Verification evidence
 
@@ -96,6 +96,8 @@ Each module has a note in `docs/modules/` (what, how, why, tests, limits, viva q
 8. **TypeScript 5.9 vs 6:** TS 6 turns on `strict` by default and 5.9 doesn't. `strict` and `DOM.Iterable` are now set explicitly.
 
 ## 6. What the team must do to pass gate G0
+
+*Update 2026-10-19: done. Owners D16, C1–C6 confirmed, wireframes approved (D33), Phase A merged to `main` via PR #1. Still open: D15 (16th format, before T1.5), D31 (docker bind, before T2.5), and sources for the [VERIFY + cite] items before the final report.*
 
 1. ~~Commit, push, CI green~~ done 2026-10-17 (PR #1); review and merge PR #1.
 2. **Decide D16** (owners of tracks A, B, C); fill the Owner lines in `docs/modules/*.md` and C1–C6.

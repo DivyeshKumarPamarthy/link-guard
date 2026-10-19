@@ -26,12 +26,12 @@ C = web, test kit, CI. Spec references point to `docs/phase1-spec.md`.
 - [x] **T0.9 Docs scaffolding (all).** `docs/threat-model.md` (one page: assets, attackers, SSRF/DoS/XSS/log-leak mitigations, residual risks), `docs/limitations.md`, confirm or edit every **[CONFIRM]** item in the spec and record it in `docs/decisions.md`.
   Accept: no open **[CONFIRM]** without an owner and date in `decisions.md`.
   *Done 2026-10-19: owner Divyesh for all tracks (D16); C1, C2, C4–C6 confirmed; C3 has an owner and date and waits on D15.*
-- [ ] **T0.10 Wireframes + Tailwind tokens (C).** Team sketches the 7 screens listed in `docs/ui-style-guide.md` (paper or Figma, photos/exports into `docs/wireframes/`). Claude Code then sets up Tailwind with the guide's colour, type and radius tokens, light + dark, and a `/styleguide` dev-only page showing every verdict badge and the claimed-vs-actual panel with mock data.
+- [x] **T0.10 Wireframes + Tailwind tokens (C).** Team sketches the 7 screens listed in `docs/ui-style-guide.md` (paper or Figma, photos/exports into `docs/wireframes/`). Claude Code then sets up Tailwind with the guide's colour, type and radius tokens, light + dark, and a `/styleguide` dev-only page showing every verdict badge and the claimed-vs-actual panel with mock data.
   Accept: team approves wireframes; `/styleguide` renders all states in light and dark mode; contrast checked (WCAG AA).
-  *Status 2026-10-19: Tailwind tokens, components and `/styleguide` done; contrast tested. Draft wireframes of all 7 screens in `docs/wireframes/draft-wireframes.md` (decision D32). Not ticked until the team fills in the approval table.*
-- [ ] **T0.11 Report skeleton + literature survey outline (team, no code).** Fill `docs/report-outline.md` chapter 1–2 headings with notes: problem statement, objectives, comparison with VirusTotal, Chrome Safe Browsing and URL expanders.
+  *Done 2026-10-19: tokens, components and `/styleguide` with contrast tests; wireframes for all 7 screens approved by the team (`docs/wireframes/draft-wireframes.md`, D32, D33).*
+- [x] **T0.11 Report skeleton + literature survey outline (team, no code).** Fill `docs/report-outline.md` chapter 1–2 headings with notes: problem statement, objectives, comparison with VirusTotal, Chrome Safe Browsing and URL expanders.
   Accept: supervisor has seen the problem statement and scope.
-  *Status 2026-10-17: draft notes for chapters 1–2 in `report-outline.md` (claims marked [VERIFY + cite]). Not ticked: the team rewrites them and shows the supervisor.*
+  *Marked done 2026-10-19 on Divyesh's confirmation that the team approved it. Draft notes for chapters 1–2 are in `report-outline.md`; the [VERIFY + cite] items still need sources before the final report.*
 
 ## Phase B, sprint 1 — Weeks 2–3
 
