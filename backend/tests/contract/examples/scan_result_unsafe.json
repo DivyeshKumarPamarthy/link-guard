@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0",
+  "scan_id": "9f3c2d1e-4b5a-4c6d-8e7f-0a1b2c3d4e5f",
+  "state": "done",
+  "status": "completed",
+  "input_url": "https://short.example/abc",
+  "normalized_url": "https://short.example/abc",
+  "final_url": "https://files.example/movie.mp4",
+  "display_host": "files.example",
+  "punycode_host": "files.example",
+  "link_type": "shortened",
+  "verdict": "UNSAFE",
+  "display_verdict": "UNSAFE",
+  "score": 70,
+  "confidence": "high",
+  "scope": { "mode": "full", "bytes_analyzed": 48213, "total_bytes": 48213, "range_supported": true, "label": "Whole file checked (47 KB)" },
+  "headline": "Blocked: file named .mp4 is actually a Windows executable",
+  "file": { "claimed_name": "movie.mp4", "name_source": "content-disposition", "content_type": "video/mp4", "detected_type": "pe-executable", "detected_label": "Windows executable", "family": "executable", "detection_confidence": "certain",
+            "first_bytes_hex": "4d5a90000300000004000000ffff0000", "signature": { "offset": 0, "length": 2, "name": "MZ (Windows executable)" } },
+  "redirects": [
+    { "url": "https://short.example/abc", "status": 302, "address_class": "public" },
+    { "url": "https://files.example/movie.mp4", "status": 200, "address_class": "public" }
+  ],
+  "reasons": [
+    { "code": "TYPE_MISMATCH_EXEC", "severity": "high", "weight": 70, "group": "type",
+      "message": "The file is named .mp4 but its content is a Windows executable.", "evidence": {"claimed_ext": "mp4", "detected": "pe-executable"} },
+    { "code": "REDIR_CROSS_DOMAIN", "severity": "info", "weight": 0, "group": "redirect",
+      "message": "The link ended on a different site: files.example.", "evidence": {"final_host": "files.example"} }
+  ],
+  "unavailable_signals": [],
+  "timings_ms": { "total": 812, "fetch": 640 },
+  "engine_version": "1.0.0",
+  "rules_version": "1.0.0",
+  "created_at": "2026-10-16T10:15:00Z",
+  "completed_at": "2026-10-16T10:15:01Z"
+}

@@ -5,6 +5,8 @@ Newest first. Status: `decided` (team agreed), `default` (chosen to unblock work
 
 | # | Date | Decision | Status | Rationale | Affects |
 | --- | --- | --- | --- | --- | --- |
+| D33 | 2026-10-19 | Wireframe questions: versions only in report Details; recent scans below "What we check"; no Cancel while checking; score only in Details; "what you can try" hints are web-app copy keyed by reason code; no automatic retry on 503 | default | Team approved the drafts without answering these; simplest honest option chosen for each | T1.6, T3.2 |
+| D32 | 2026-10-19 | Wireframes: Claude Code drafts the 7 screens as text wireframes (`docs/wireframes/draft-wireframes.md`) from the style guide; the team corrects and approves them in the file's approval table | default | Faster start; approval stays with the team, so T0.10 is ticked only after it | T0.10 |
 | D31 | 2026-10-17 | Open: inside a docker container the API must listen on `0.0.0.0` for a published port to work, but D18 says bind `127.0.0.1`. Proposal: keep the `127.0.0.1` default; compose sets `LG_BIND_HOST=0.0.0.0` inside the container and publishes `127.0.0.1:8000:8000`, so the host still only exposes loopback | open | Needed before T2.5; a loopback-only check in config would break docker-compose | T2.5 |
 | D30 | 2026-10-17 | Errors are logged as exception type + `safe(message)`, never as raw tracebacks, because exception text (e.g. from httpx) can contain URLs with secrets | default | Keeps the "every log of remote data goes through safe()" rule; uvicorn's own traceback logging is still to be reviewed in T3.5 | T0.7, T3.5 |
 | D29 | 2026-10-17 | `ScanResult` enforces the spec §2/§3 outcome rules in a validator (null outcome until done; verdict only when completed; REJECTED/UNSUPPORTED match status; plain SAFE only for full scope + confidence ≥ medium). Executor failure or invalid executor output → `ANALYSIS_ERROR` / UNABLE_TO_VERIFY (minimal version brought forward from T2.4) | default | Makes a dishonest result impossible to store or return, whatever the code path | T0.4, T0.7, T2.4 |
@@ -20,11 +22,11 @@ Newest first. Status: `decided` (team agreed), `default` (chosen to unblock work
 | D19 | 2026-10-16 | Tailwind CSS + IBM Plex Sans/Mono via @fontsource; no component library; no CDN assets | default | Polished, consistent look; works offline on demo day | T0.10 |
 | D18 | 2026-10-16 | Backend runs on localhost only (bind 127.0.0.1; compose publishes on 127.0.0.1) | decided | Condition for D17: an anonymous, open-CORS, unlimited backend must not be reachable from other machines | T0.7, T2.5 |
 | D17 | 2026-10-16 | Scope cuts: no auth/identity/`client_id`, no history API, no caching/retention/dedupe, no PostgreSQL or migrations tool, no rate limits beyond `Semaphore(4)` + 503 when >20 waiting, no queue infrastructure, no JSON logs/metrics/`/healthz`, no circuit breakers (try/except + 5 s timeout), CORS `*` without credentials, no consent screens (README note that Phase 2 reputation sends URLs to third parties) | decided | Focus effort on the detection and safety engine; acceptable for a localhost academic demo | T0.3, T0.6, T0.7, T2.4, T2.5, T3.2 |
-| D16 | — | Who owns tracks A, B, C | open | Needed before T0.1 | All |
+| D16 | 2026-10-19 | Divyesh owns tracks A, B and C until the team splits them; update the module notes when it does | default | Owners needed for review (D21) and the confirm items | All |
 | D15 | — | The 16th supported format | open | Plan says 16, lists 15 | T1.5, T2.6 |
 | D14 | 2026-10-16 | Python 3.12, `uv`, React + Vite + TS, openapi-typescript; SQLite via SQLAlchemy `create_all` (no Alembic) | default | Matches plan stack; one toolchain for all | T0.1 |
 | D13 | 2026-10-16 | ~~Rate limits per client/IP~~ superseded by D17: 4 concurrent scans, 503 above 20 waiting | decided | Simplification | T2.4 |
-| D12 | 2026-10-16 | `EXT_SPOOFED_NAME` weight 40, `TYPE_POLYGLOT` weight 30 | default | Plan gave no weights | T0.5 |
+| D12 | 2026-10-16 | `EXT_SPOOFED_NAME` weight 40, `TYPE_POLYGLOT` weight 30 (confirmed 2026-10-19, C4/C5) | decided | Plan gave no weights | T0.5 |
 | D11 | 2026-10-16 | Added rows 21 (valid HTTPS via pinned connect) and 22 (wrong-host cert) | default | Plan had no test for pinned TLS, its riskiest path | T3.3 |
 | D10 | 2026-10-16 | Row 20 gzip → SAFE / NO_ISSUES_IN_CHECKED_PART, confidence low, scope partial; `FETCH_UNEXPECTED_ENCODING` weight 0 | default | Plan gave no weight; encoding is a reliability signal, not risk | T2.1, T2.3 |
 | D9 | 2026-10-16 | Any HTML body (by header or sniff) → `LINK_IS_WEB_PAGE` → UNABLE_TO_VERIFY. `TYPE_MISMATCH_TEXT` only for non-HTML text | default | Resolves plan row 7 ("SAFE or Unable to Verify") to one outcome | T3.1, row 7 |
@@ -40,13 +42,14 @@ Newest first. Status: `decided` (team agreed), `default` (chosen to unblock work
 ## Items to confirm
 
 Every **[CONFIRM Cn]** marker in `docs/phase1-spec.md`. The default applies until the team
-confirms or changes it; record the outcome here and in the table above. Owners are pending D16.
+confirms or changes it; record the outcome here and in the table above. Confirmed by Divyesh
+on 2026-10-19 (owner of all tracks, D16); C3 waits on D15.
 
 | # | Spec | Default in use | Owner | Confirm by | Status |
 | --- | --- | --- | --- | --- | --- |
-| C1 | §4 `LG_MIN_THROUGHPUT_BPS` | 1024 B/s, enforced after a 5 s grace period | TBD (D16) | Before T2.1 (week 4) | default |
-| C2 | §4 `LG_LONG_CHAIN_HOPS` | more than 3 redirects → `REDIR_LONG_CHAIN` | TBD (D16) | Before T1.4 (week 2) | default |
-| C3 | §7 format list | the 15 listed formats; 16th format is D15 | TBD (D16) | Before T1.5 (week 2) | open (D15) |
-| C4 | §8 `EXT_SPOOFED_NAME` weight | 40 (D12) | TBD (D16) | Before T2.3 (week 4) | default |
-| C5 | §8 `TYPE_POLYGLOT` weight | 30 (D12) | TBD (D16) | Before T2.3 (week 4) | default |
-| C6 | §13 non-functional targets | p95 < 3 s for ≤ 5 MB on the demo server; deadline + 2 s; memory bounded by the cap; 4 concurrent scans | TBD (D16) | Before T3.3 (week 6) | default |
+| C1 | §4 `LG_MIN_THROUGHPUT_BPS` | 1024 B/s, enforced after a 5 s grace period | Divyesh | Before T2.1 (week 4) | confirmed 2026-10-19 |
+| C2 | §4 `LG_LONG_CHAIN_HOPS` | more than 3 redirects → `REDIR_LONG_CHAIN` | Divyesh | Before T1.4 (week 2) | confirmed 2026-10-19 |
+| C3 | §7 format list | the 15 listed formats; 16th format is D15 | Divyesh | Before T1.5 (week 2) | default confirmed 2026-10-19; 16th format open (D15) |
+| C4 | §8 `EXT_SPOOFED_NAME` weight | 40 (D12) | Divyesh | Before T2.3 (week 4) | confirmed 2026-10-19 |
+| C5 | §8 `TYPE_POLYGLOT` weight | 30 (D12) | Divyesh | Before T2.3 (week 4) | confirmed 2026-10-19 |
+| C6 | §13 non-functional targets | p95 < 3 s for ≤ 5 MB on the demo server; deadline + 2 s; memory bounded by the cap; 4 concurrent scans | Divyesh | Before T3.3 (week 6) | confirmed 2026-10-19 |

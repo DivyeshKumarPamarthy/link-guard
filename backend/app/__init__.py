@@ -1,0 +1,1 @@
+"""LinkGuard backend application package."""

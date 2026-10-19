@@ -1,0 +1,176 @@
+/* LinkGuard design tokens. Every value comes from docs/ui-style-guide.md; do not add
+   colours here without updating the guide and re-running the contrast test
+   (src/theme/contrast.test.ts).
+
+   Colours are CSS variables so dark mode is just a different set of values:
+   - :root holds the light values;
+   - the system dark setting switches to the dark values;
+   - data-theme="light" / "dark" on an element forces a theme (used by /styleguide).
+   The dark values appear twice (media query and data-theme); the contrast test fails
+   if the two copies ever differ. */
+
+@import 'tailwindcss';
+
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+  --lg-paper: #f5f7f9;
+  --lg-surface: #ffffff;
+  --lg-ink: #13202e;
+  --lg-muted: #5a6878;
+  --lg-line: #d5dce3;
+  --lg-brand: #2f5d8a;
+
+  --lg-safe-fg: #1e7a4c;
+  --lg-safe-bg: #e6f3ec;
+  --lg-no-issues-fg: #2e6f7e;
+  --lg-no-issues-bg: #e5f0f2;
+  --lg-suspicious-fg: #8a5200;
+  --lg-suspicious-bg: #fbf0dc;
+  --lg-unsafe-fg: #b3261e;
+  --lg-unsafe-bg: #fbe7e5;
+  --lg-unable-fg: #4f5d6c;
+  --lg-unable-bg: #eef1f4;
+  --lg-rejected-fg: #6a4c93;
+  --lg-rejected-bg: #efeaf6;
+  --lg-unsupported-fg: #4f5d6c;
+  --lg-unsupported-bg: transparent;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --lg-paper: #0f1720;
+    --lg-surface: #16212c;
+    --lg-ink: #e6ebf0;
+    --lg-muted: #9aa8b6;
+    --lg-line: #2a3744;
+    --lg-brand: #8db4dd;
+
+    --lg-safe-fg: #6cc59a;
+    --lg-safe-bg: #173126;
+    --lg-no-issues-fg: #74bccb;
+    --lg-no-issues-bg: #14303a;
+    --lg-suspicious-fg: #e8b04b;
+    --lg-suspicious-bg: #352812;
+    --lg-unsafe-fg: #f2867d;
+    --lg-unsafe-bg: #3a1a18;
+    --lg-unable-fg: #a4b0bc;
+    --lg-unable-bg: #222d38;
+    --lg-rejected-fg: #c2a6e8;
+    --lg-rejected-bg: #2a2238;
+    --lg-unsupported-fg: #a4b0bc;
+    --lg-unsupported-bg: transparent;
+  }
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --lg-paper: #0f1720;
+  --lg-surface: #16212c;
+  --lg-ink: #e6ebf0;
+  --lg-muted: #9aa8b6;
+  --lg-line: #2a3744;
+  --lg-brand: #8db4dd;
+
+  --lg-safe-fg: #6cc59a;
+  --lg-safe-bg: #173126;
+  --lg-no-issues-fg: #74bccb;
+  --lg-no-issues-bg: #14303a;
+  --lg-suspicious-fg: #e8b04b;
+  --lg-suspicious-bg: #352812;
+  --lg-unsafe-fg: #f2867d;
+  --lg-unsafe-bg: #3a1a18;
+  --lg-unable-fg: #a4b0bc;
+  --lg-unable-bg: #222d38;
+  --lg-rejected-fg: #c2a6e8;
+  --lg-rejected-bg: #2a2238;
+  --lg-unsupported-fg: #a4b0bc;
+  --lg-unsupported-bg: transparent;
+}
+
+/* "inline" makes utilities read the variables where they are used, so a data-theme
+   section really switches colours. Tailwind's default palette is removed: only the
+   guide's colours exist (bg-paper, text-ink, text-safe-fg, ...). */
+@theme inline {
+  --color-*: initial;
+  --color-transparent: transparent;
+  --color-paper: var(--lg-paper);
+  --color-surface: var(--lg-surface);
+  --color-ink: var(--lg-ink);
+  --color-muted: var(--lg-muted);
+  --color-line: var(--lg-line);
+  --color-brand: var(--lg-brand);
+
+  --color-safe-fg: var(--lg-safe-fg);
+  --color-safe-bg: var(--lg-safe-bg);
+  --color-no-issues-fg: var(--lg-no-issues-fg);
+  --color-no-issues-bg: var(--lg-no-issues-bg);
+  --color-suspicious-fg: var(--lg-suspicious-fg);
+  --color-suspicious-bg: var(--lg-suspicious-bg);
+  --color-unsafe-fg: var(--lg-unsafe-fg);
+  --color-unsafe-bg: var(--lg-unsafe-bg);
+  --color-unable-fg: var(--lg-unable-fg);
+  --color-unable-bg: var(--lg-unable-bg);
+  --color-rejected-fg: var(--lg-rejected-fg);
+  --color-rejected-bg: var(--lg-rejected-bg);
+  --color-unsupported-fg: var(--lg-unsupported-fg);
+  --color-unsupported-bg: var(--lg-unsupported-bg);
+}
+
+@theme {
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* Type scale (px / line-height) from the guide */
+  --text-small: 13px;
+  --text-small--line-height: 18px;
+  --text-body: 16px;
+  --text-body--line-height: 24px;
+  --text-section: 20px;
+  --text-section--line-height: 28px;
+  --text-verdict: 28px;
+  --text-verdict--line-height: 34px;
+  --text-title: 40px;
+  --text-title--line-height: 46px;
+
+  /* Radius: 6 px controls, 10 px panels, pill badges */
+  --radius-control: 6px;
+  --radius-panel: 10px;
+  --radius-badge: 999px;
+
+  /* Content column */
+  --container-content: 720px;
+  /* Prose line length */
+  --container-prose: 72ch;
+}
+
+@layer base {
+  body {
+    @apply bg-paper font-sans text-body text-ink;
+  }
+
+  /* Visible 2 px focus ring in the brand colour on every focusable element */
+  :focus-visible {
+    outline: 2px solid var(--lg-brand);
+    outline-offset: 2px;
+  }
+}
+
+/* The one motion: the verdict band fades in (150 ms), skipped for reduced motion. */
+@keyframes lg-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@utility animate-verdict-in {
+  animation: lg-fade-in 150ms ease-out;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
