@@ -1,0 +1,16 @@
+{
+  "type": "object",
+  "properties": {
+    "verdict": {
+      "type": "string",
+      "enum": ["approve", "changes_needed"]
+    },
+    "problems": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Concrete problems, each with file:line, the rule or acceptance criterion broken, and what to change. Empty when approving."
+    }
+  },
+  "required": ["verdict", "problems"],
+  "additionalProperties": false
+}

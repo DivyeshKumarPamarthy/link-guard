@@ -1,0 +1,15 @@
+# Paths the loop's Claude sessions must never change. One pattern per line:
+# "dir/**" protects everything under dir; anything else is an exact path or a glob.
+# The loop rejects a task whose branch touches any of these (scripts/loop.py checks
+# every changed path, including new files).
+CLAUDE.md
+docs/phase1-spec.md
+docs/decisions.md
+docs/roadmap.md
+docs/ui-style-guide.md
+docs/phase1-tasks.md
+backend/tests/ssrf/**
+backend/tests/e2e/**
+.loop/**
+scripts/loop.py
+.github/**

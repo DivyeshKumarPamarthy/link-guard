@@ -3,7 +3,7 @@
 # so a stub can never look like a passing step.
 
 .PHONY: setup dev demo-server test test-backend test-web test-demo test-ssrf test-e2e samples \
-	openapi lint lint-backend lint-web lint-demo
+	openapi check-openapi lint lint-backend lint-web lint-demo test-loop
 
 setup:  ## Install backend + demo (uv, from uv.lock) and web (npm, from package-lock.json)
 	cd backend && uv sync --locked
@@ -38,6 +38,23 @@ demo-server:  ## Run the demo server: HTTP :8081, HTTPS :8443, wrong-cert HTTPS 
 openapi:  ## Export backend/openapi.json, then regenerate web/src/api/types.ts from it
 	cd backend && uv run python -m scripts.export_openapi
 	cd web && npm run openapi
+
+# Regenerate both contract files into a temp folder and diff them against the working tree.
+# Writes nothing in the repo, so it is safe as a verify step.
+check-openapi:  ## Fail if backend/openapi.json or web/src/api/types.ts are out of date
+	@test -f backend/scripts/export_openapi.py || { echo "check-openapi: no OpenAPI export yet. Run T0.4 first (make openapi)."; exit 1; }
+	@tmp=$$(mktemp -d); \
+	status=0; \
+	(cd backend && uv run python -m scripts.export_openapi --output "$$tmp/openapi.json") && \
+	(cd web && npx openapi-typescript "$$tmp/openapi.json" -o "$$tmp/types.ts" > /dev/null) && \
+	diff -u backend/openapi.json "$$tmp/openapi.json" && \
+	diff -u web/src/api/types.ts "$$tmp/types.ts" || status=1; \
+	rm -r "$$tmp"; \
+	if [ $$status -ne 0 ]; then echo "check-openapi: contract files are out of date. Run 'make openapi' and commit."; exit 1; fi; \
+	echo "check-openapi: openapi.json and types.ts are up to date"
+
+test-loop:  ## Unit tests for the automation loop (scripts/loop.py), standard library only
+	uv run --no-project --python 3.12 python -m unittest discover -s scripts/tests -t . -v
 
 dev:
 	@echo "make dev: not implemented yet (docker-compose arrives in T2.5)"; exit 1
