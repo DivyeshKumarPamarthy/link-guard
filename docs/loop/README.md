@@ -91,6 +91,8 @@ so `main` stays clean. Its log row and questions are in that commit.
 - `--permission-prompts none`: anything outside the allowed tools is refused without asking.
 - No merge, no push, no `git commit` by Claude (the tool list does not allow it).
 - Budget per task via `--max-budget-usd`, passing what is left of `--budget` to each call.
+  This is a **soft** limit: Claude Code checks it between its own steps, so one call can go
+  over (the first T1.5 run spent $4.82 of $3). The loop makes no new call once the budget is used.
 
 ## Files
 
@@ -104,6 +106,8 @@ so `main` stays clean. Its log row and questions are in that commit.
 | `docs/loop/log.md`, `questions.md` | Append-only records, written on task branches |
 
 ## Known limits
+
+- Ctrl-C or a crash during a task parks it like any other stop (WIP commit, back to `main`).
 
 - Verify commands that start with `cd` are run by the loop through `sh -c`; Claude itself runs
   the equivalent `uv --directory …` / `npm --prefix …` forms, because `cd` is not in its tool list.

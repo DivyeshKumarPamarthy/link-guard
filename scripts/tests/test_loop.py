@@ -584,6 +584,28 @@ class RunTaskTests(LoopTestCase):
         self.assertEqual(runner.verify_calls(), [])
 
 
+class InterruptTests(LoopTestCase):
+    def test_ctrl_c_mid_task_parks_the_branch_and_returns_to_main(self) -> None:
+        class InterruptedVerify(FakeRunner):
+            def __call__(self, args: Sequence[str], **kwargs: object) -> Result:
+                if list(args[:2]) == ["sh", "-c"]:
+                    raise KeyboardInterrupt
+                return super().__call__(args, **kwargs)  # type: ignore[arg-type]
+
+        runner = InterruptedVerify(implement=[DONE])
+        with self.assertRaises(KeyboardInterrupt):
+            self.make_loop(runner).run(1, None)
+        self.assertTrue(
+            runner.commits()[0].startswith("WIP T1.1 (blocked): loop stopped: interrupted")
+        )
+        self.assertEqual(runner.calls[-1], ["git", "switch", "main"])
+
+    def test_review_prompt_forbids_asking_for_protected_edits(self) -> None:
+        review = (REPO / ".loop" / "prompts" / "review.md").read_text()
+        self.assertIn("Never ask for these", review)
+        self.assertIn("docs/decisions.md", review)
+
+
 class RunTests(LoopTestCase):
     def test_refuses_dirty_tree(self) -> None:
         runner = FakeRunner(dirty=True)

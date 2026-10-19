@@ -655,6 +655,25 @@ class Loop:
             spent += reply.cost_usd
             session = reply.session_id or session
 
+    def run_task_safely(self, task: Task) -> Outcome:
+        """run_task, but an interruption (Ctrl-C) or a crash still parks the branch.
+
+        Without this, stopping the loop mid-task left an empty task/<ID> branch checked out,
+        and the next run skipped that task because its branch already existed.
+        """
+        try:
+            return self.run_task(task)
+        except BaseException as exc:
+            reason = "interrupted" if isinstance(exc, KeyboardInterrupt) else type(exc).__name__
+            try:
+                if self.sh(["git", "branch", "--show-current"]).stdout.strip() == task_branch(
+                    task.id
+                ):
+                    self.park(task, Outcome(task.id, "blocked", f"loop stopped: {reason}"))
+            except Exception as cleanup_error:  # report, but keep the original error
+                self.echo(f"STOP: could not park {task_branch(task.id)}: {cleanup_error}")
+            raise
+
     def finish(self, task: Task, outcome: Outcome) -> Outcome:
         """Approved: tick the box, log, commit on the branch, go back to main. Never merge."""
         self.paths.tasks.write_text(tick_task(self.paths.tasks.read_text(), task.id))
@@ -695,7 +714,7 @@ class Loop:
                     return 0
                 continue
             self.echo(f"--- {task.id}: starting on {task_branch(task.id)}")
-            outcome = self.run_task(task)
+            outcome = self.run_task_safely(task)
             self.echo(
                 f"--- {task.id}: {outcome.status} after {outcome.corrections} correction "
                 f"round(s), ${outcome.cost_usd:.2f}: {outcome.message}"

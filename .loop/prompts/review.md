@@ -18,6 +18,15 @@ Check the diff against:
 
 Use Read, Grep and Glob to look at surrounding code when the diff is not enough.
 
+Never ask for these, because the implementer is forbidden to do them in loop runs and the
+loop or the human owner does them after review:
+- ticking the task's box in `docs/phase1-tasks.md`;
+- adding rows to `docs/decisions.md` (proposed decisions travel in the implementer's
+  `questions`; a missing decision row is not a problem);
+- any edit to a protected path (`CLAUDE.md`, the spec, decisions, roadmap, style guide,
+  `docs/phase1-tasks.md`, `backend/tests/ssrf/**`, `backend/tests/e2e/**`, `.loop/**`,
+  `scripts/loop.py`, `.github/**`).
+
 Report only real problems, each one concrete: file and line, which rule or criterion it
 breaks, and what to change. Do not report style that ruff, mypy, eslint or tsc already
 enforce, and do not ask for optional improvements.
