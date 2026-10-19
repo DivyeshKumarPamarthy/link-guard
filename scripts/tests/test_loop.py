@@ -293,6 +293,7 @@ class FakeRunner:
         changed: Sequence[str] = ("backend/app/engine/detect/x.py",),
         implement: Sequence[dict[str, object] | str] = (),
         reviews: Sequence[dict[str, object]] = (),
+        mentor: Sequence[dict[str, object] | str] = (),
         verify_codes: Sequence[int] = (),
         version: str = "2.1.295 (Claude Code)",
         dirty: bool = False,
@@ -304,6 +305,7 @@ class FakeRunner:
         self.changed = list(changed)
         self.implement = list(implement)
         self.reviews = list(reviews)
+        self.mentor = list(mentor)
         self.verify_codes = list(verify_codes)
         self.version = version
         self.dirty = dirty
@@ -314,7 +316,12 @@ class FakeRunner:
         self.main_files: dict[Path, str] = {}  # main's copy of the loop's files
         self.committed: dict[str, dict[str, str]] = {}  # branch -> file name -> committed text
 
-    TRACKED = ("docs/phase1-tasks.md", "docs/loop/log.md", "docs/loop/questions.md")
+    TRACKED = (
+        "docs/phase1-tasks.md",
+        "docs/loop/log.md",
+        "docs/loop/questions.md",
+        "docs/loop/digest.md",
+    )
 
     def snapshot(self, cwd: Path) -> dict[Path, str]:
         return {cwd / name: (cwd / name).read_text() for name in self.TRACKED}
@@ -346,6 +353,8 @@ class FakeRunner:
         if args[:2] == ["claude", "--version"]:
             return Result(0, self.version)
         if args[:2] == ["claude", "-p"]:
+            if "--model" in args:  # only the mentor call picks a model
+                return self.reply(self.mentor.pop(0))
             if args[args.index("--permission-mode") + 1] == "dontAsk":
                 return self.reply(self.reviews.pop(0))
             return self.reply(self.implement.pop(0))
@@ -383,6 +392,9 @@ class FakeRunner:
     def claude_calls(self) -> list[list[str]]:
         return [c for c in self.calls if c[:2] == ["claude", "-p"]]
 
+    def mentor_calls(self) -> list[list[str]]:
+        return [c for c in self.claude_calls() if "--model" in c]
+
     def verify_calls(self) -> list[list[str]]:
         return [c for c in self.calls if c[:2] == ["sh", "-c"]]
 
@@ -390,14 +402,32 @@ class FakeRunner:
         return [c[c.index("-m") + 1] for c in self.calls if c[:2] == ["git", "commit"]]
 
 
-DONE = {
+DONE: dict[str, object] = {
     "status": "done",
     "summary": "Signature table and detect_type",
     "files_changed": ["x"],
     "questions": [],
 }
-APPROVE = {"verdict": "approve", "problems": []}
-CHANGES = {"verdict": "changes_needed", "problems": ["x.py:3 hard-coded cap"]}
+ASK: dict[str, object] = {
+    "status": "needs_human",
+    "summary": "Two choices are not in the spec",
+    "files_changed": [],
+    "questions": ["Name the helper parse_ip or parse_ip_literal?", "Which weight for EXT_NEW?"],
+}
+APPROVE: dict[str, object] = {"verdict": "approve", "problems": []}
+
+
+def mentor_reply(*escalate: bool) -> dict[str, object]:
+    """One mentor answer per flag; escalate=False means the mentor decided alone."""
+    return {
+        "answers": [
+            {"decision": f"decision {i}", "rationale": f"rationale {i} (D38)", "escalate": flag}
+            for i, flag in enumerate(escalate, start=1)
+        ]
+    }
+
+
+CHANGES: dict[str, object] = {"verdict": "changes_needed", "problems": ["x.py:3 hard-coded cap"]}
 
 
 class LoopTestCase(unittest.TestCase):
@@ -406,7 +436,7 @@ class LoopTestCase(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.tmp)
         (self.tmp / "docs" / "loop").mkdir(parents=True)
         shutil.copytree(REPO / ".loop", self.tmp / ".loop")
-        for name in ("log.md", "questions.md"):
+        for name in ("log.md", "questions.md", "digest.md"):
             shutil.copy(REPO / "docs" / "loop" / name, self.tmp / "docs" / "loop" / name)
         self.write_tasks(tasks_file())
         self.output: list[str] = []
@@ -508,7 +538,7 @@ class RunTaskTests(LoopTestCase):
         self.assertEqual((outcome.status, outcome.corrections), ("done", 2))
 
     def test_needs_human_writes_questions_and_parks(self) -> None:
-        ask = {
+        ask: dict[str, object] = {
             "status": "needs_human",
             "summary": "16th format is undecided",
             "files_changed": [],
@@ -517,12 +547,16 @@ class RunTaskTests(LoopTestCase):
                 "Proposed decision: ELF counts. Rationale: x",
             ],
         }
-        runner = FakeRunner(implement=[ask])
+        runner = FakeRunner(implement=[ask], mentor=[mentor_reply(True, True)])
         outcome = self.run_one(runner)
         self.assertEqual(outcome.status, "needs_human")
         questions = runner.committed["task/T1.5"]["questions.md"]
         self.assertIn("## T1.5", questions)
-        self.assertIn("- **Q:** Which is the 16th format (D15)?\n  **A:** ", questions)
+        self.assertIn(
+            "- **Q:** Which is the 16th format (D15)?\n"
+            "  Mentor (escalated): decision 1 rationale 1 (D38)\n  **A:** \n",
+            questions,
+        )
         self.assertIn("Proposed decision: ELF counts.", questions)
         self.assertEqual(runner.verify_calls(), [])
         self.assertTrue(runner.commits()[0].startswith("WIP T1.5 (needs_human)"))
@@ -535,6 +569,20 @@ class RunTaskTests(LoopTestCase):
         self.assertIn("docs/decisions.md", outcome.message)
         self.assertEqual(runner.verify_calls(), [])
         self.assertEqual(len(runner.claude_calls()), 1)  # no review
+        self.assertTrue(runner.commits()[0].startswith("WIP T1.5 (rejected)"))
+
+    def test_editing_the_mentor_agent_is_rejected(self) -> None:
+        """The loop must never rewrite its own mentor (or its rulebook)."""
+        patterns = load_patterns((REPO / ".loop" / "protected.txt").read_text())
+        self.assertTrue(is_protected(".claude/agents/mentor.md", patterns))
+        self.assertTrue(is_protected("docs/decision-policy.md", patterns))
+        runner = FakeRunner(
+            implement=[DONE], changed=["backend/app/x.py", ".claude/agents/mentor.md"]
+        )
+        outcome = self.run_one(runner)
+        self.assertEqual(outcome.status, "rejected")
+        self.assertIn(".claude/agents/mentor.md", outcome.message)
+        self.assertEqual(runner.verify_calls(), [])
         self.assertTrue(runner.commits()[0].startswith("WIP T1.5 (rejected)"))
 
     def test_protected_check_runs_again_after_a_fix(self) -> None:
@@ -582,6 +630,164 @@ class RunTaskTests(LoopTestCase):
         runner = FakeRunner(implement=[DONE], reviews=[APPROVE])
         self.assertEqual(self.run_one(runner).status, "done")
         self.assertEqual(runner.verify_calls(), [])
+
+
+class MentorTests(LoopTestCase):
+    def test_all_answers_decided_resume_the_task_and_reach_the_digest(self) -> None:
+        runner = FakeRunner(
+            implement=[ASK, DONE], mentor=[mentor_reply(False, False)], reviews=[APPROVE]
+        )
+        outcome = self.run_one(runner)
+        self.assertEqual((outcome.status, outcome.corrections), ("done", 1))
+        resume = runner.claude_calls()[2]  # implement, mentor, resume
+        self.assertEqual(resume[resume.index("--resume") + 1], "sess-1")
+        self.assertIn("The project mentor answered your questions", resume[2])
+        self.assertIn("1. Q: Name the helper parse_ip or parse_ip_literal?", resume[2])
+        self.assertIn("Decision: decision 2", resume[2])
+        digest = runner.committed["task/T1.5"]["digest.md"]
+        self.assertIn("### T1.5 · task/T1.5 · ready for review", digest)
+        self.assertIn("Decided by the mentor:", digest)
+        self.assertIn("| Which weight for EXT_NEW? | decision 2 | rationale 2 (D38) |", digest)
+        self.assertNotIn("- [ ] **T1.5", runner.committed["task/T1.5"]["phase1-tasks.md"])
+
+    def test_one_escalation_stops_without_resuming(self) -> None:
+        runner = FakeRunner(implement=[ASK], mentor=[mentor_reply(False, True)])
+        outcome = self.run_one(runner)
+        self.assertEqual(outcome.status, "needs_human")
+        self.assertIn("1 escalated", outcome.message)
+        self.assertEqual(len(runner.claude_calls()), 2)  # implement + mentor, no resume
+        questions = runner.committed["task/T1.5"]["questions.md"]
+        self.assertIn(
+            "- **Q:** Name the helper parse_ip or parse_ip_literal?\n"
+            "  **A:** (mentor-default) decision 1 Rationale: rationale 1 (D38)\n",
+            questions,
+        )
+        self.assertIn(
+            "- **Q:** Which weight for EXT_NEW?\n"
+            "  Mentor (escalated): decision 2 rationale 2 (D38)\n  **A:** \n",
+            questions,
+        )
+        digest = runner.committed["task/T1.5"]["digest.md"]
+        self.assertIn("waiting on you: 1 escalated question(s)", digest)
+        self.assertIn("Proposed by the mentor, not applied (the task stopped):", digest)
+        self.assertIn("Escalated (answer in docs/loop/questions.md):\n\n- Which weight", digest)
+        self.assertNotIn("Decided by the mentor:", digest.split("### T1.5")[1])
+
+    def test_failed_mentor_call_escalates_everything(self) -> None:
+        runner = FakeRunner(implement=[ASK], mentor=["Error: overloaded"])
+        outcome = self.run_one(runner)
+        self.assertEqual(outcome.status, "needs_human")
+        self.assertIn("2 escalated", outcome.message)
+        self.assertIn("Mentor unavailable: claude exited 1", self.committed_questions(runner))
+
+    def test_wrong_number_of_answers_escalates_everything(self) -> None:
+        runner = FakeRunner(implement=[ASK], mentor=[mentor_reply(False)])
+        outcome = self.run_one(runner)
+        self.assertIn("2 escalated", outcome.message)
+        self.assertIn("did not match the questions", self.committed_questions(runner))
+
+    def test_missing_escalate_flag_or_empty_decision_escalates(self) -> None:
+        reply: dict[str, object] = {
+            "answers": [
+                {"decision": "x", "rationale": "y"},
+                {"decision": " ", "rationale": "y", "escalate": False},
+            ]
+        }
+        runner = FakeRunner(implement=[ASK], mentor=[reply])
+        self.assertIn("2 escalated", self.run_one(runner).message)
+
+    def test_no_questions_means_no_mentor_call(self) -> None:
+        blocked = {**ASK, "status": "blocked", "summary": "uv is missing", "questions": []}
+        runner = FakeRunner(implement=[blocked])
+        outcome = self.run_one(runner)
+        self.assertEqual(outcome.status, "blocked")
+        self.assertEqual(runner.mentor_calls(), [])
+        digest = runner.committed["task/T1.5"]["digest.md"]
+        self.assertIn("### T1.5 · task/T1.5 · stopped (blocked): uv is missing", digest)
+
+    def test_budget_used_up_skips_the_mentor_and_escalates(self) -> None:
+        runner = FakeRunner(implement=[ASK], cost=3.0)
+        outcome = self.run_one(runner, budget=3.0)
+        self.assertEqual(runner.mentor_calls(), [])
+        self.assertIn("2 escalated", outcome.message)
+        self.assertIn("budget is used up", self.committed_questions(runner))
+
+    def test_mentor_round_counts_toward_the_correction_limit(self) -> None:
+        runner = FakeRunner(
+            implement=[DONE, DONE, DONE, ASK],
+            reviews=[CHANGES, CHANGES, CHANGES],
+            mentor=[mentor_reply(False, False)],
+        )
+        outcome = self.run_one(runner)
+        self.assertEqual((outcome.status, outcome.corrections), ("blocked", 3))
+        self.assertIn("still failing after 3 correction rounds", outcome.message)
+        # the decisions were applied (the round was used), so the digest lists them
+        self.assertIn("Decided by the mentor:", runner.committed["task/T1.5"]["digest.md"])
+
+    def test_mentor_call_is_read_only_with_opus(self) -> None:
+        runner = FakeRunner(implement=[ASK], mentor=[mentor_reply(True, True)])
+        self.run_one(runner)
+        (call,) = runner.mentor_calls()
+        self.assertEqual(call[call.index("--allowedTools") + 1], "Read,Grep,Glob")
+        self.assertEqual(call[call.index("--permission-mode") + 1], "dontAsk")
+        self.assertEqual(call[call.index("--model") + 1], "opus")
+        self.assertNotIn("--resume", call)
+        self.assertIn("1. Name the helper parse_ip or parse_ip_literal?", call[2])
+        self.assertIn("TASK: T1.5", call[2])
+        schema = json.loads(call[call.index("--json-schema") + 1])
+        self.assertEqual(schema["required"], ["answers"])
+
+    def test_digest_is_written_only_when_the_task_ends(self) -> None:
+        class WatchDigest(FakeRunner):
+            """Records whether digest.md had changed whenever the loop staged changes."""
+
+            seen: list[str] = []
+
+            def __call__(self, args: Sequence[str], **kwargs: object) -> Result:
+                if list(args[:4]) == ["git", "diff", "--cached", "--name-only"]:
+                    cwd = kwargs["cwd"]
+                    assert isinstance(cwd, Path)
+                    self.seen.append((cwd / "docs/loop/digest.md").read_text())
+                return super().__call__(args, **kwargs)  # type: ignore[arg-type]
+
+        runner = WatchDigest(
+            implement=[ASK, DONE], mentor=[mentor_reply(False, False)], reviews=[APPROVE]
+        )
+        before = (self.tmp / "docs/loop/digest.md").read_text()
+        self.run_one(runner)
+        self.assertEqual(runner.seen, [before])  # unchanged at the protected-path check
+        self.assertIn("ready for review", runner.committed["task/T1.5"]["digest.md"])
+
+    def test_one_date_heading_per_day(self) -> None:
+        for task_id in ("T1.5", "T1.1"):
+            runner = FakeRunner(implement=[DONE], reviews=[APPROVE])
+            self.run_one(runner, task_id=task_id)
+            (self.tmp / "docs/loop/digest.md").write_text(
+                runner.committed[f"task/{task_id}"]["digest.md"]
+            )  # as if that branch were merged
+        digest = (self.tmp / "docs/loop/digest.md").read_text()
+        self.assertEqual(digest.count("\n## 20"), 1)
+        self.assertIn("### T1.5", digest)
+        self.assertIn("### T1.1", digest)
+
+    def test_ctrl_c_after_a_mentor_answer_keeps_the_decision(self) -> None:
+        class InterruptedVerify(FakeRunner):
+            def __call__(self, args: Sequence[str], **kwargs: object) -> Result:
+                if list(args[:2]) == ["sh", "-c"]:
+                    raise KeyboardInterrupt
+                return super().__call__(args, **kwargs)  # type: ignore[arg-type]
+
+        runner = InterruptedVerify(implement=[ASK, DONE], mentor=[mentor_reply(False, False)])
+        sections = parse_tasks(self.tasks_text())
+        task = next(t for s in sections for t in s.tasks if t.id == "T1.5")
+        with self.assertRaises(KeyboardInterrupt):
+            self.make_loop(runner).run_task_safely(task)
+        digest = runner.committed["task/T1.5"]["digest.md"]
+        self.assertIn("stopped (blocked): loop stopped: interrupted", digest)
+        self.assertIn("| Which weight for EXT_NEW? | decision 2 |", digest)
+
+    def committed_questions(self, runner: FakeRunner) -> str:
+        return runner.committed["task/T1.5"]["questions.md"]
 
 
 class InterruptTests(LoopTestCase):

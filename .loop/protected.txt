@@ -5,11 +5,13 @@
 CLAUDE.md
 docs/phase1-spec.md
 docs/decisions.md
+docs/decision-policy.md
 docs/roadmap.md
 docs/ui-style-guide.md
 docs/phase1-tasks.md
 backend/tests/ssrf/**
 backend/tests/e2e/**
 .loop/**
+.claude/**
 scripts/loop.py
 .github/**
