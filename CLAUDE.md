@@ -150,3 +150,17 @@ make lint         # ruff + mypy (backend, demo), eslint + tsc (web)
 - Add a global "allow private addresses" switch. The demo exemption is per (hostname, port), demo/test profile only.
 - Retry loops beyond a single retry; follow HTML/JS redirects; decode response bodies beyond the byte cap.
 - Commit binaries or real installers to the repo.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues on `DivyeshKumarPamarthy/link-guard`, managed with the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` and `docs/adr/` at the repo root (created lazily), with `docs/decisions.md` as the existing decision record. See `docs/agents/domain.md`.
