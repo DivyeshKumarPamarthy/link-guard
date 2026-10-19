@@ -5,6 +5,7 @@ pass in CI. Track letters: A = fetcher and safety, B = detection, scoring, orche
 C = web, test kit, CI. Spec references point to `docs/phase1-spec.md`.
 
 ## Phase A — Foundations (week 1). Gate G0: contract v1 tagged, CI green, wireframes agreed.
+gate: G0 passed 2026-10-19
 
 - [x] **T0.1 Repo skeleton (C).** Create the layout from `CLAUDE.md`, `.gitignore` (incl. `samples/`, `.env`, `*.db`), `.gitattributes` (binary fixtures), `.env.example`, `.python-version` (3.12), `uv` project in `backend/`, Vite React TS app in `web/`, `Makefile` with the targets listed in `CLAUDE.md` (stubs allowed).
   Accept: `make setup` succeeds on a clean clone; README "Quick start" section exists.
