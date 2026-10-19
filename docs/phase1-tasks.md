@@ -35,8 +35,9 @@ C = web, test kit, CI. Spec references point to `docs/phase1-spec.md`.
 
 ## Phase B, sprint 1 — Weeks 2–3
 
-- [ ] **T1.1 Demo server v1 (C).** `demo/` app with HTTP 8081 + HTTPS 8443, local test CA generation script (`demo/certs/`), endpoints from spec §11 needed by the fetcher: `/f`, `/big`, `/slow`, `/reset`, `/chunked`, `/gzip`, `/redirect/*`, `/status/*`, `/page`, `/empty`, and a "wrong host cert" HTTPS listener (for row 22).
+- [x] **T1.1 Demo server v1 (C).** `demo/` app with HTTP 8081 + HTTPS 8443, local test CA generation script (`demo/certs/`), endpoints from spec §11 needed by the fetcher: `/f`, `/big`, `/slow`, `/reset`, `/chunked`, `/gzip`, `/redirect/*`, `/status/*`, `/page`, `/empty`, and a "wrong host cert" HTTPS listener (for row 22).
   Accept: smoke tests hitting each endpoint directly.
+  *Done 2026-10-19: 59 smoke tests (in-process + real sockets incl. both TLS listeners); wrong-cert listener on :8444 (D34). `/disguised`, `/cd`, `/index` come with the samples (T2.6) and detection (T1.5) work.*
 - [ ] **T1.2 URL validation + IP classification (A).** Parser, scheme/userinfo/port/length checks, host normalization (IDNA, trailing dot), strict IP-literal parsing (decimal/octal/hex/short/full-width), `Resolver` interface (system + static-hosts + fake for tests), classification with `ipaddress`, exemption logic (exact host:port, test/demo only).
   Accept: every SSRF table row in spec §5 that does not need a redirect passes with a socket guard asserting zero connections.
 - [ ] **T1.3 Pinned-TLS spike (A). Time-box: 2 days.** Prove a request to the validated IP with SNI + certificate verification against the original hostname, using the 8443 demo listener and the test CA. Record the chosen approach in `docs/decisions.md`; if the fallback is used, record the residual rebinding risk in `docs/limitations.md`.

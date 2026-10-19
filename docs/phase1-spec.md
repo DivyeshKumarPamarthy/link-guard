@@ -422,7 +422,8 @@ serves, by path:
 
 Test/demo config: `LG_STATIC_HOSTS=a.demo.test=127.0.0.1,b.demo.test=127.0.0.1,c.demo.test=127.0.0.1`,
 `LG_SSRF_EXEMPT=a.demo.test:8081,b.demo.test:8081,c.demo.test:8081,a.demo.test:8443,…`,
-`LG_ALLOWED_PORTS=80,443,8081,8443`, `LG_EXTRA_CA_BUNDLE=demo/certs/test-ca.pem`.
+`LG_ALLOWED_PORTS=80,443,8081,8443,8444`, `LG_EXTRA_CA_BUNDLE=demo/certs/test-ca.pem`.
+Port 8444 is the wrong-certificate HTTPS listener for row 22, exempted as `a.demo.test:8444` (D34).
 A test asserts the `prod` profile rejects all of these.
 
 ## 12. Acceptance matrix (each row = one automated e2e test; exactly one expected outcome)

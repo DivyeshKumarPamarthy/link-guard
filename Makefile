@@ -2,14 +2,15 @@
 # Targets not built yet exit with an error that names the task that will build them,
 # so a stub can never look like a passing step.
 
-.PHONY: setup dev test test-backend test-web test-ssrf test-e2e samples openapi \
-	lint lint-backend lint-web
+.PHONY: setup dev demo-server test test-backend test-web test-demo test-ssrf test-e2e samples \
+	openapi lint lint-backend lint-web lint-demo
 
-setup:  ## Install backend (uv, from uv.lock) and web (npm, from package-lock.json) dependencies
+setup:  ## Install backend + demo (uv, from uv.lock) and web (npm, from package-lock.json)
 	cd backend && uv sync --locked
+	cd demo && uv sync --locked
 	cd web && npm ci
 
-test: test-backend test-web  ## Backend pytest (network sockets blocked) + web vitest
+test: test-backend test-web test-demo  ## Backend pytest (sockets blocked), web vitest, demo pytest
 
 test-backend:
 	cd backend && uv run pytest
@@ -17,13 +18,22 @@ test-backend:
 test-web:
 	cd web && npm test
 
-lint: lint-backend lint-web  ## ruff + mypy (backend), eslint + tsc (web)
+test-demo:  ## Demo server smoke tests (loopback only)
+	cd demo && uv run pytest
+
+lint: lint-backend lint-web lint-demo  ## ruff + mypy (backend, demo), eslint + tsc (web)
 
 lint-backend:
 	cd backend && uv run ruff check && uv run ruff format --check && uv run mypy
 
 lint-web:
 	cd web && npm run lint && npm run typecheck
+
+lint-demo:
+	cd demo && uv run ruff check && uv run ruff format --check && uv run mypy
+
+demo-server:  ## Run the demo server: HTTP :8081, HTTPS :8443, wrong-cert HTTPS :8444
+	cd demo && uv run python -m demo_server
 
 openapi:  ## Export backend/openapi.json, then regenerate web/src/api/types.ts from it
 	cd backend && uv run python -m scripts.export_openapi

@@ -42,6 +42,20 @@ jobs:
       - name: Tests (vitest)
         run: make test-web
 
+  demo:
+    name: Demo server lint + smoke tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.0
+      - name: Install dependencies from uv.lock
+        working-directory: demo
+        run: uv sync --locked
+      - name: Lint (ruff, mypy)
+        run: make lint-demo
+      - name: Smoke tests (loopback only)
+        run: make test-demo
+
   contract:
     name: Contract check (OpenAPI and web types up to date)
     runs-on: ubuntu-latest

@@ -28,4 +28,6 @@ chapter 7 is written from it. "Planned" names the task or phase that changes it.
 | uvicorn's own error logs may include tracebacks with remote data | Possible secrets in the terminal on an unexpected crash | T3.5 |
 | docker-compose not written yet; bind address inside a container is open (D31) | `make dev` is a stub | T2.5 |
 | FastAPI's `/docs` page loads Swagger UI from a CDN | API docs don't open with Wi-Fi off; take report screenshots while online | Self-host the assets if needed for the demo |
+| Demo endpoints `/disguised`, `/cd/{variant}` and `/index` not built yet | Rows needing disguised samples or Content-Disposition variants can't run yet | T1.5 / T2.6 |
+| Demo `/reset` prints an exception traceback in the demo server's terminal | Expected: it is how the server drops the connection on purpose | — |
 | Verified on macOS (Apple Silicon) only | Windows/Linux setup not yet tried by the team | T4.5 fresh-machine check |
