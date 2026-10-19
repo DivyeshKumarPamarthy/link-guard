@@ -33,8 +33,9 @@ reviews and merges your branch later, and must be able to explain every line in 
 ## When something is unspecified
 
 If the spec, decisions or task do not say how something should work, STOP. Do not guess.
-Return status `needs_human` with the question(s) in `questions`, saying what you found and
-which options you see. If you cannot continue for another reason (missing tool, broken
+Return status `needs_human` with the question(s) in `questions`. The project mentor answers
+them first (routine ones come back to you as decisions; the rest go to the human), so write
+each question as ONE decision: what you found, the options you see, and the one you propose. If you cannot continue for another reason (missing tool, broken
 environment, a dependency task not really done), return status `blocked` and explain it in
 `summary`.
 

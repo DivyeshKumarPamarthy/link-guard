@@ -1,0 +1,30 @@
+{
+  "type": "object",
+  "properties": {
+    "answers": {
+      "type": "array",
+      "description": "One entry per question, in the order the questions were asked.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string",
+            "description": "What to do, concrete enough to act on. When escalating: your recommendation."
+          },
+          "rationale": {
+            "type": "string",
+            "description": "Two lines at most, citing the CLAUDE.md principle or the decision (Dnn) it follows."
+          },
+          "escalate": {
+            "type": "boolean",
+            "description": "true sends the question to Divyesh and stops the task; false lets the loop act on the decision."
+          }
+        },
+        "required": ["decision", "rationale", "escalate"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["answers"],
+  "additionalProperties": false
+}

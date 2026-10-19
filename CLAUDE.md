@@ -27,12 +27,13 @@ Do not build anything from Phases C–F, and do not add dependencies for them.
 | `docs/ui-style-guide.md` | Colours, type, verdict badges, screen layouts, copy rules | Before any web UI work |
 | `docs/phase1-tasks.md` | Ordered task list with acceptance criteria | Pick the next unchecked task |
 | `docs/decisions.md` | Decisions already made + open ones | Before making any design choice |
+| `docs/decision-policy.md` | What the mentor decides alone and what goes to Divyesh | Before asking any question |
 | `docs/report-outline.md` | Report chapters and viva question bank | When a module is finished (add its notes) |
 | `docs/modules/_template.md` | Template for the "how this module works" note | After every task |
 | `docs/reference/linkguard-implementation-plan.html` | Original plan with ~113 Phase 1 edge-case tables (M1–M7) | When implementing a module: its edge cases are test cases |
 
 If the spec and the original plan disagree, **the spec wins** (it fixes known contradictions
-in the plan). If something is unspecified, stop and ask; record the answer in `docs/decisions.md`.
+in the plan). If something is unspecified, consult the mentor (see "Questions and the mentor").
 
 ## Non-negotiable rules
 
@@ -137,6 +138,16 @@ make lint         # ruff + mypy (backend, demo), eslint + tsc (web)
    how it works in 5–10 lines, how it is tested, known limits, likely viva questions.
 6. Stop and summarise the change for the human owner to review. Do not start the next task unasked.
 7. If a change touches the contract, bump nothing silently: update models, regenerate OpenAPI and web types, update contract tests, and note it in `docs/decisions.md`.
+
+## Questions and the mentor
+
+- Before asking Divyesh a question, consult the `mentor` subagent (`.claude/agents/mentor.md`,
+  read-only), which follows `docs/decision-policy.md`. Ask Divyesh only if it escalates.
+- Record every mentor decision in `docs/decisions.md` with status `mentor-default`, and append
+  it to `docs/loop/digest.md` under today's date (task, question, decision, rationale).
+- Still stop and show Divyesh: (a) new or changed security tests (SSRF, e2e) before
+  implementing against them; (b) the end of a task.
+- Loop runs (`scripts/loop.py`) consult the mentor automatically; see `docs/loop/README.md`.
 
 ## Do not
 

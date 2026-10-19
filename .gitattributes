@@ -21,3 +21,8 @@
 *.msi binary
 *.torrent binary
 *.ico binary
+
+# Append-only loop records, written on parallel task/* branches: keep both sides on merge
+docs/loop/log.md merge=union
+docs/loop/questions.md merge=union
+docs/loop/digest.md merge=union

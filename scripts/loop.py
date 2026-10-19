@@ -6,6 +6,11 @@ failures back to the same Claude session (max 3 correction rounds), asks a separ
 read-only Claude session to review the diff, and on approval ticks the box, logs the
 result and commits on the branch. It never merges and never pushes: a human merges.
 
+When the implementer stops with questions, a read-only mentor session answers them under
+docs/decision-policy.md. If none is escalated the task resumes with the answers; otherwise
+it stops and the questions go to docs/loop/questions.md. Every task gets a block in
+docs/loop/digest.md.
+
 Python 3.12, standard library only. See docs/loop/README.md.
 
     uv run --no-project --python 3.12 python scripts/loop.py --dry-run
@@ -34,6 +39,8 @@ IMPLEMENT_TOOLS = (
     "Bash(git status),Bash(git diff *)"
 )
 REVIEW_TOOLS = "Read,Grep,Glob,Bash(git diff *)"
+MENTOR_TOOLS = "Read,Grep,Glob"
+MENTOR_MODEL = "opus"
 
 
 # --- paths -----------------------------------------------------------------------------
@@ -62,6 +69,10 @@ class Paths:
         return self.repo / ".loop" / "review.schema.json"
 
     @property
+    def mentor_schema(self) -> Path:
+        return self.repo / ".loop" / "mentor.schema.json"
+
+    @property
     def protected(self) -> Path:
         return self.repo / ".loop" / "protected.txt"
 
@@ -72,6 +83,10 @@ class Paths:
     @property
     def questions(self) -> Path:
         return self.repo / "docs" / "loop" / "questions.md"
+
+    @property
+    def digest(self) -> Path:
+        return self.repo / "docs" / "loop" / "digest.md"
 
 
 # --- task file parsing ---------------------------------------------------------------
@@ -366,6 +381,38 @@ class ClaudeReply:
     error: str = ""
 
 
+@dataclass
+class MentorAnswer:
+    question: str
+    decision: str
+    rationale: str
+    escalate: bool
+    applied: bool = False  # True once the task resumed with this decision
+
+
+def mentor_answers(reply: ClaudeReply, questions: Sequence[str]) -> list[MentorAnswer]:
+    """Pair the mentor's answers with the questions. Fails closed: a failed call, a missing
+    or malformed answer, or a wrong number of answers escalates every question, so a broken
+    mentor can never make a decision."""
+    raw = reply.data.get("answers") if reply.ok else None
+    if not isinstance(raw, list) or len(raw) != len(questions):
+        why = reply.error if not reply.ok else "the mentor's reply did not match the questions"
+        return [MentorAnswer(q, "", f"Mentor unavailable: {why}", True) for q in questions]
+    answers = []
+    for question, item in zip(questions, raw, strict=True):
+        item = item if isinstance(item, dict) else {}
+        decision = str(item.get("decision", "")).strip()
+        rationale = str(item.get("rationale", "")).strip()
+        escalate = item.get("escalate") is not False or not decision
+        answers.append(MentorAnswer(question, decision, rationale, escalate))
+    return answers
+
+
+def one_line(text: str) -> str:
+    """For a Markdown table cell: no line breaks, no column separators."""
+    return " ".join(text.split()).replace("|", "/")
+
+
 class Loop:
     def __init__(
         self,
@@ -382,6 +429,7 @@ class Loop:
         self.verbose = verbose
         self.dry_run = dry_run
         self.echo = echo
+        self.answers: list[MentorAnswer] = []  # the current task's mentor answers
 
     # helpers ------------------------------------------------------------------------
 
@@ -435,6 +483,7 @@ class Loop:
         budget: float,
         resume: str | None = None,
         stdin: str | None = None,
+        model: str | None = None,
     ) -> ClaudeReply:
         if budget <= 0:
             return ClaudeReply(False, {}, resume, 0.0, "the task's budget is used up")
@@ -457,6 +506,8 @@ class Loop:
         ]
         if resume:
             args += ["--resume", resume]
+        if model:
+            args += ["--model", model]
         result = self.sh(args, input=stdin, timeout=CLAUDE_TIMEOUT_S)
         try:
             payload = json.loads(result.stdout)
@@ -497,27 +548,93 @@ class Loop:
 
     def log_line(self, outcome: Outcome, branch: str) -> None:
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-        summary = " ".join(outcome.message.split()).replace("|", "/")
+        summary = one_line(outcome.message)
         self.append(
             self.paths.log,
             f"| {now} | {outcome.task_id} | {branch} | {outcome.status} | "
             f"{outcome.corrections} | ${outcome.cost_usd:.2f} | {summary} |\n",
         )
 
-    def write_questions(self, task: Task, summary: str, questions: Sequence[str]) -> None:
+    def write_questions(
+        self, task: Task, summary: str, questions: Sequence[str], answers: Sequence[MentorAnswer]
+    ) -> None:
+        """Escalated questions get an empty A: for the human; the mentor's other answers are
+        filled in as (mentor-default) so the human sees what it would have done."""
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-        items = (
-            "".join(f"- **Q:** {q}\n  **A:** \n" for q in questions) or "- (no questions given)\n"
-        )
+        items = ""
+        for i, question in enumerate(questions):
+            answer = answers[i] if i < len(answers) else None
+            if answer is None:
+                items += f"- **Q:** {question}\n  **A:** \n"
+            elif answer.escalate:
+                items += (
+                    f"- **Q:** {question}\n  Mentor (escalated): {answer.decision} "
+                    f"{answer.rationale}\n  **A:** \n"
+                )
+            else:
+                items += (
+                    f"- **Q:** {question}\n  **A:** (mentor-default) {answer.decision} "
+                    f"Rationale: {answer.rationale}\n"
+                )
+        items = items or "- (no questions given)\n"
         self.append(
             self.paths.questions,
             f"\n## {task.id} · {now} · branch {task_branch(task.id)}\n\n{summary}\n\n{items}",
         )
 
+    def write_digest(self, task: Task, outcome: Outcome) -> None:
+        """One block per task under today's date. Written only when the task is finished or
+        parked (after every protected-path check), like the log row."""
+        today = datetime.date.today().isoformat()
+        text = self.paths.digest.read_text() if self.paths.digest.exists() else ""
+        headings = [line for line in text.splitlines() if line.startswith("## ")]
+        block = "" if headings and headings[-1] == f"## {today}" else f"\n## {today}\n"
+        escalated = [a for a in self.answers if a.escalate]
+        if outcome.status == "done":
+            state = "ready for review"
+        elif escalated:
+            state = f"waiting on you: {len(escalated)} escalated question(s)"
+        else:
+            state = f"stopped ({outcome.status}): {one_line(outcome.message)}"
+        block += f"\n### {task.id} · {task_branch(task.id)} · {state}\n"
+        for title, group in (
+            ("Decided by the mentor", [a for a in self.answers if a.applied]),
+            (
+                "Proposed by the mentor, not applied (the task stopped)",
+                [a for a in self.answers if not a.applied and not a.escalate],
+            ),
+        ):
+            if group:
+                block += f"\n{title}:\n\n| Question | Decision | Rationale |\n| --- | --- | --- |\n"
+                for a in group:
+                    cells = [one_line(a.question), one_line(a.decision), one_line(a.rationale)]
+                    block += "| " + " | ".join(cells) + " |\n"
+        if escalated:
+            block += "\nEscalated (answer in docs/loop/questions.md):\n\n"
+            block += "".join(f"- {one_line(a.question)}\n" for a in escalated)
+        self.append(self.paths.digest, block)
+
+    def ask_mentor(
+        self, task: Task, summary: str, questions: Sequence[str], budget: float
+    ) -> tuple[list[MentorAnswer], float]:
+        """A separate read-only session answers the implementer's questions."""
+        numbered = "".join(f"{i}. {q}\n" for i, q in enumerate(questions, start=1))
+        reply = self.claude(
+            f"{self.prompt('mentor')}\n\nTASK: {task.id}\n\n{task.text}\n\n"
+            f"WHERE THE IMPLEMENTER STOPPED: {summary}\n\nQUESTIONS:\n{numbered}",
+            tools=MENTOR_TOOLS,
+            mode="dontAsk",
+            schema=self.paths.mentor_schema,
+            budget=budget,
+            model=MENTOR_MODEL,
+        )
+        return mentor_answers(reply, questions), reply.cost_usd
+
     def park(self, task: Task, outcome: Outcome) -> Outcome:
         """Leave the branch with everything committed on it, log, and go back to main."""
         branch = task_branch(task.id)
         self.log_line(outcome, branch)
+        self.write_digest(task, outcome)
         self.git("add", "-A")
         self.git(
             "commit",
@@ -534,6 +651,7 @@ class Loop:
         patterns = load_patterns(self.paths.protected.read_text())
         branch = task_branch(task.id)
         self.git("switch", "-c", branch, "main")
+        self.answers = []
         spent = 0.0
 
         def remaining() -> float:
@@ -561,77 +679,99 @@ class Loop:
                 return self.park(task, Outcome(task.id, "blocked", reply.error, corrections, spent))
             status = str(reply.data.get("status", ""))
             summary = str(reply.data.get("summary", "")).strip() or "(no summary)"
+            feedback: str | None = None
             if status in ("blocked", "needs_human"):
                 questions = strings(reply.data.get("questions"))
-                self.write_questions(task, summary, questions)
-                return self.park(
-                    task,
-                    Outcome(
-                        task.id,
-                        status,
-                        f"{summary} (questions in docs/loop/questions.md)",
-                        corrections,
-                        spent,
-                    ),
-                )
-
-            # 5. protected paths
-            touched = protected_changes(self.staged_changes(), patterns)
-            if touched:
-                return self.park(
-                    task,
-                    Outcome(
-                        task.id,
-                        "rejected",
-                        "edited protected paths: " + ", ".join(touched),
-                        corrections,
-                        spent,
-                    ),
-                )
-
-            # 6. verify, run by the loop itself
-            feedback: str | None = None
-            if task.verify:
-                result = self.sh(["sh", "-c", task.verify], timeout=VERIFY_TIMEOUT_S)
-                if result.returncode != 0:
-                    output = tail(result.stdout + "\n" + result.stderr)
-                    feedback = (
-                        f"{self.prompt('fix')}\n\nVERIFY COMMAND: {task.verify}\n"
-                        f"EXIT CODE: {result.returncode}\n\nOUTPUT (last "
-                        f"{OUTPUT_TAIL_LINES} lines):\n{output}\n"
-                    )
-
-            # 7. review, a separate read-only session
-            if feedback is None:
-                diff = self.git("diff", "--cached", "main").stdout
-                review_prompt = (
-                    f"{self.prompt('review')}\n\nTASK: {task.id}\n\n{task.text}\n\n"
-                    "The diff against main is on standard input."
-                )
-                review = self.claude(
-                    review_prompt,
-                    tools=REVIEW_TOOLS,
-                    mode="dontAsk",
-                    schema=self.paths.review_schema,
-                    budget=remaining(),
-                    stdin=diff,
-                )
-                spent += review.cost_usd
-                if not review.ok:
+                answers: list[MentorAnswer] = []
+                if questions:  # 4b. the mentor answers what it may decide alone
+                    answers, cost = self.ask_mentor(task, summary, questions, remaining())
+                    spent += cost
+                    self.answers += answers
+                if not answers or any(a.escalate for a in answers):
+                    self.write_questions(task, summary, questions, answers)
+                    escalated = sum(a.escalate for a in answers)
+                    note = f"{escalated} escalated; " if answers else ""
                     return self.park(
                         task,
                         Outcome(
-                            task.id, "blocked", f"review failed: {review.error}", corrections, spent
+                            task.id,
+                            status,
+                            f"{summary} ({note}questions in docs/loop/questions.md)",
+                            corrections,
+                            spent,
                         ),
                     )
-                if review.data.get("verdict") == "approve":
-                    return self.finish(task, Outcome(task.id, "done", summary, corrections, spent))
-                problems = strings(review.data.get("problems"))
-                feedback = f"{self.prompt('fix')}\n\nThe reviewer asked for changes:\n" + "".join(
-                    f"- {p}\n" for p in problems
+                for answer in answers:
+                    answer.applied = True
+                feedback = f"{self.prompt('answered')}\n\n" + "".join(
+                    f"{i}. Q: {a.question}\n   Decision: {a.decision}\n"
+                    f"   Rationale: {a.rationale}\n"
+                    for i, a in enumerate(answers, start=1)
                 )
+            else:
+                # 5. protected paths
+                touched = protected_changes(self.staged_changes(), patterns)
+                if touched:
+                    return self.park(
+                        task,
+                        Outcome(
+                            task.id,
+                            "rejected",
+                            "edited protected paths: " + ", ".join(touched),
+                            corrections,
+                            spent,
+                        ),
+                    )
 
-            # a correction round (fix or review); max MAX_CORRECTIONS per task
+                # 6. verify, run by the loop itself
+                if task.verify:
+                    result = self.sh(["sh", "-c", task.verify], timeout=VERIFY_TIMEOUT_S)
+                    if result.returncode != 0:
+                        output = tail(result.stdout + "\n" + result.stderr)
+                        feedback = (
+                            f"{self.prompt('fix')}\n\nVERIFY COMMAND: {task.verify}\n"
+                            f"EXIT CODE: {result.returncode}\n\nOUTPUT (last "
+                            f"{OUTPUT_TAIL_LINES} lines):\n{output}\n"
+                        )
+
+                # 7. review, a separate read-only session
+                if feedback is None:
+                    diff = self.git("diff", "--cached", "main").stdout
+                    review_prompt = (
+                        f"{self.prompt('review')}\n\nTASK: {task.id}\n\n{task.text}\n\n"
+                        "The diff against main is on standard input."
+                    )
+                    review = self.claude(
+                        review_prompt,
+                        tools=REVIEW_TOOLS,
+                        mode="dontAsk",
+                        schema=self.paths.review_schema,
+                        budget=remaining(),
+                        stdin=diff,
+                    )
+                    spent += review.cost_usd
+                    if not review.ok:
+                        return self.park(
+                            task,
+                            Outcome(
+                                task.id,
+                                "blocked",
+                                f"review failed: {review.error}",
+                                corrections,
+                                spent,
+                            ),
+                        )
+                    if review.data.get("verdict") == "approve":
+                        return self.finish(
+                            task, Outcome(task.id, "done", summary, corrections, spent)
+                        )
+                    problems = strings(review.data.get("problems"))
+                    feedback = (
+                        f"{self.prompt('fix')}\n\nThe reviewer asked for changes:\n"
+                        + "".join(f"- {p}\n" for p in problems)
+                    )
+
+            # a correction round (fix, review or mentor answers); max MAX_CORRECTIONS per task
             corrections += 1
             if corrections > MAX_CORRECTIONS:
                 return self.park(
@@ -678,6 +818,7 @@ class Loop:
         """Approved: tick the box, log, commit on the branch, go back to main. Never merge."""
         self.paths.tasks.write_text(tick_task(self.paths.tasks.read_text(), task.id))
         self.log_line(outcome, task_branch(task.id))
+        self.write_digest(task, outcome)
         self.git("add", "-A")
         self.git("commit", "-m", f"{task.id}: {outcome.message[:72]}")
         self.git("switch", "main")

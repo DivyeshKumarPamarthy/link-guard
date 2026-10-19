@@ -40,14 +40,19 @@ uv run --no-project --python 3.12 python scripts/loop.py --task T1.5 --budget 5 
 3. **Implement:** `claude -p` with `.loop/prompts/implement.md`, the task text, its verify
    command and the protected paths. Allowed tools: Read, Edit, Write, Grep, Glob and Bash for
    `make`, `uv`, `npm`, `npx`, `git status`, `git diff`. Nothing prompts; anything else is denied.
-4. **Protected paths:** every path changed on the branch (new files too) is checked against
+4. **Questions → mentor:** if Claude stops (`needs_human` or `blocked`) with questions, a
+   read-only mentor session answers them (see "The mentor"). If none is escalated, the
+   implementing session resumes with the answers (one correction round). Otherwise the task
+   stops here.
+5. **Protected paths:** every path changed on the branch (new files too) is checked against
    `.loop/protected.txt`. Any hit rejects the task.
-5. **Verify:** the loop runs the task's `verify:` command itself. On failure it resumes the same
+6. **Verify:** the loop runs the task's `verify:` command itself. On failure it resumes the same
    Claude session with `.loop/prompts/fix.md` and the last 200 lines of output.
-6. **Review:** a separate, read-only `claude -p` session gets the diff and
+7. **Review:** a separate, read-only `claude -p` session gets the diff and
    `.loop/prompts/review.md`. "changes_needed" sends the problems back to the implementing session.
-7. Fix rounds and review rounds share one limit: **3 correction rounds**, then the task is blocked.
-8. **Approve:** the loop ticks the box, appends to `docs/loop/log.md`, commits
+8. Fix, review and mentor rounds share one limit: **3 correction rounds**, then the task is blocked.
+9. **Approve:** the loop ticks the box, appends to `docs/loop/log.md` and
+   `docs/loop/digest.md`, commits
    `"<ID>: <summary>"` on the branch and switches back to `main`.
 
 ## Stop messages
@@ -65,17 +70,48 @@ Every run ends with a line starting `STOP:`.
 | `T<x> needs T<y>, a pair/human task` | You have to do T<y> yourself | Do it, tick it on `main`, run again |
 | `No unticked auto tasks left.` | Nothing for the loop to do | |
 | `reached --max-tasks N` | Normal end of a run | Review and merge the new `task/*` branches |
-| `T<x> is needs_human` | Claude stopped with questions | See "Answering questions" |
+| `T<x> is needs_human` | The mentor escalated at least one question (or failed) | See "Answering questions" |
 | `T<x> is blocked` | Unfixable after 3 rounds, budget used up, or Claude failed | Read the branch's last log row and the WIP commit |
 | `T<x> is rejected` | The branch touched a protected path | Inspect the branch; delete it and run again, or do the task as `pair` |
 
 A stopped task's branch is kept with everything committed on it (`WIP <ID> (<status>): …`),
 so `main` stays clean. Its log row and questions are in that commit.
 
+## The mentor
+
+`.claude/agents/mentor.md` is a read-only project mentor (model opus) that follows
+`docs/decision-policy.md`: it decides routine questions (naming, step order, defaults,
+choosing among existing reason codes) and escalates anything about verdicts, security
+checks, scope, dependencies, gates or budget, and anything it is unsure about.
+
+- The loop calls it with `.loop/prompts/mentor.md`, tools `Read,Grep,Glob`, and
+  `.loop/mentor.schema.json` (`decision`, `rationale`, `escalate` per question). Its cost
+  comes out of the task's budget.
+- **Fails closed:** a failed call, a used-up budget, a wrong number of answers, a missing
+  `escalate` flag or an empty decision escalates every question.
+- **None escalated:** the task resumes with `.loop/prompts/answered.md` and the answers.
+- **Any escalated:** the task stops. `questions.md` gets every question: escalated ones with
+  an empty **A:** and the mentor's recommendation, the others pre-filled as
+  `(mentor-default)`.
+- Mentor decisions go to `docs/loop/digest.md` only, never to `docs/decisions.md` (D36, D39).
+  When you merge a branch, copy its "Decided by the mentor" rows into `docs/decisions.md`
+  with status `mentor-default`.
+
+## The digest
+
+`docs/loop/digest.md` has one `## <date>` section per day and one block per task: whether
+its branch is ready for review, the mentor's decisions, and escalated questions. The loop
+writes it only when a task finishes or is parked, like the log row. `.gitattributes` merges
+`log.md`, `questions.md` and `digest.md` with `merge=union` (both sides kept), so parallel
+task branches do not conflict there; after merging two branches from the same day you may
+see the date heading twice. The union rule applies to merges made with `git` locally; if
+GitHub's merge button reports a conflict in these files, merge the branch locally instead.
+
 ## Answering questions
 
-1. `git switch task/<ID>` and open `docs/loop/questions.md`. The newest section lists Claude's
-   questions and any "Proposed decision" lines.
+1. `git switch task/<ID>` and open `docs/loop/questions.md`. The newest section lists the
+   questions; escalated ones have an empty **A:** and the mentor's recommendation, and the
+   others show the mentor's `(mentor-default)` answer.
 2. Decide. Write each answer after its **A:**, and record agreed decisions in
    `docs/decisions.md` yourself (on `main`).
 3. Then either delete the branch (`git switch main && git branch -D task/<ID>`) so the loop
@@ -83,8 +119,8 @@ so `main` stays clean. Its log row and questions are in that commit.
 
 ## Protections
 
-- **Protected paths** (`.loop/protected.txt`): `CLAUDE.md`, the spec, decisions, roadmap,
-  style guide, `docs/phase1-tasks.md`, `backend/tests/ssrf/**`, `backend/tests/e2e/**`,
+- **Protected paths** (`.loop/protected.txt`): `CLAUDE.md`, the spec, decisions, the
+  decision policy, roadmap, style guide, `docs/phase1-tasks.md`, `.claude/**`, `backend/tests/ssrf/**`, `backend/tests/e2e/**`,
   `.loop/**`, `scripts/loop.py`, `.github/**`. Only the loop ticks task boxes, after verify
   and review pass.
 - The loop runs the verify command itself; Claude's own claim of success is not trusted.
@@ -101,9 +137,11 @@ so `main` stays clean. Its log row and questions are in that commit.
 | `scripts/loop.py` | The loop (standard library only) |
 | `scripts/tests/test_loop.py` | Unit tests with git and Claude faked: `make test-loop` |
 | `.loop/prompts/implement.md`, `fix.md`, `review.md` | Prompts |
-| `.loop/result.schema.json`, `review.schema.json` | Structured output Claude must return |
+| `.loop/prompts/mentor.md`, `answered.md` | Mentor prompt; how its answers are handed back |
+| `.loop/result.schema.json`, `review.schema.json`, `mentor.schema.json` | Structured output Claude must return |
+| `.claude/agents/mentor.md`, `docs/decision-policy.md` | The mentor's role and rulebook (shared with interactive sessions) |
 | `.loop/protected.txt` | Paths Claude must never change |
-| `docs/loop/log.md`, `questions.md` | Append-only records, written on task branches |
+| `docs/loop/log.md`, `questions.md`, `digest.md` | Append-only records, written on task branches |
 
 ## Known limits
 
