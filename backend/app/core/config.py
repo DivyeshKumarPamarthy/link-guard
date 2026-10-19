@@ -57,6 +57,11 @@ class Settings(BaseSettings):
     poll_after_ms: int = Field(500, gt=0)
     mock_delay_ms: int = Field(300, ge=0)
 
+    # File-type detection (T1.5; spec §7 names the rules but not these numbers)
+    zip_max_entries: int = Field(10_000, gt=0)
+    text_sample_bytes: int = Field(4096, gt=0)
+    text_min_printable_ratio: float = Field(0.95, gt=0, le=1)
+
     # test / demo profiles only (decision D2)
     static_hosts: Annotated[dict[str, str], NoDecode] = {}
     ssrf_exempt: Annotated[tuple[tuple[str, int], ...], NoDecode] = ()
