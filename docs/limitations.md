@@ -9,7 +9,7 @@ chapter 7 is written from it. "Planned" names the task or phase that changes it.
 | --- | --- | --- |
 | Only the first 5 MB are read (`LG_HEAD_FETCH_BYTES`) | Anything hidden later in a large file is not seen; such scans show "No issues found in the checked part", never plain "Safe" | Tail reads in Phase D |
 | Detection compares signatures (magic bytes) only | No behavioural analysis, no malware signatures, no look inside archives, PE, PDF or Office files | Phases D–E |
-| 15 formats recognised (D15: the 16th is undecided) | Other formats are reported as unknown type | — |
+| Only the formats in the spec §7 table are recognised (D15: final list) | Other formats are reported as unknown type | — |
 | Cloaking servers | A server can send LinkGuard a clean file and a browser a different one | Documented only |
 | Web pages are not followed | HTML/JS redirects and download buttons on pages are not followed; the result is "Unable to verify" | — |
 | `magnet:`, `ftp:` and `.torrent` links | Reported as "Not supported yet" | Torrent files in Phase D |

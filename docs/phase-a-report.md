@@ -20,7 +20,7 @@ first push (T0.8), owners must be named (T0.9), the team must draw and approve w
 | T0.6 Database | SQLite `scans` table, WAL, `create_all` | ✅ Done |
 | T0.7 API + mock scanner | `POST`/`GET /api/scans`, 400/404/405/413/500, CORS, 127.0.0.1 | ✅ Done |
 | T0.8 CI | 4 GitHub Actions jobs; network blocked in tests | ✅ Done: green on PR #1 |
-| T0.9 Docs scaffolding | Threat model, limitations, C1–C6 confirm list | ✅ Done 2026-10-19: owner Divyesh (D16), C1–C6 confirmed (C3 waits on D15) |
+| T0.9 Docs scaffolding | Threat model, limitations, C1–C6 confirm list | ✅ Done 2026-10-19: owner Divyesh (D16), C1–C6 confirmed (C3 closed by D15) |
 | T0.10 Wireframes + tokens | Tailwind tokens, components, `/styleguide` | ✅ Done 2026-10-19: wireframes approved (D32, D33) |
 | T0.11 Report skeleton | Draft notes for chapters 1–2 | ✅ Done 2026-10-19 (team approval reported by Divyesh); citations still to add |
 
@@ -97,11 +97,11 @@ Each module has a note in `docs/modules/` (what, how, why, tests, limits, viva q
 
 ## 6. What the team must do to pass gate G0
 
-*Update 2026-10-19: done. Owners D16, C1–C6 confirmed, wireframes approved (D33), Phase A merged to `main` via PR #1. Still open: D15 (16th format, before T1.5), D31 (docker bind, before T2.5), and sources for the [VERIFY + cite] items before the final report.*
+*Update 2026-10-19: done. Owners D16, C1–C6 confirmed, wireframes approved (D33), Phase A merged to `main` via PR #1. Still open: D31 (docker bind, before T2.5), and sources for the [VERIFY + cite] items before the final report.*
 
 1. ~~Commit, push, CI green~~ done 2026-10-17 (PR #1); review and merge PR #1.
 2. **Decide D16** (owners of tracks A, B, C); fill the Owner lines in `docs/modules/*.md` and C1–C6.
-3. **Confirm or change C1–C6** and D23–D30; decide **D31** before T2.5; D15 (16th format) before T1.5.
+3. **Confirm or change C1–C6** and D23–D30; decide **D31** before T2.5 (decided 2026-10-19); D15 decided 2026-10-19 (the §7 table is final).
 4. **Wireframes**: sketch the 7 screens into `docs/wireframes/`, approve them → tick T0.10.
 5. **Report**: rewrite the chapter 1–2 notes in your own words, find sources for every [VERIFY + cite], show the supervisor → tick T0.11.
 6. **Tag contract v1** after merging (e.g. `git tag contract-v1`).

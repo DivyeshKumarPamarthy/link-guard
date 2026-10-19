@@ -26,7 +26,7 @@ Newest first. Status: `decided` (team agreed), `default` (chosen to unblock work
 | D18 | 2026-10-16 | Backend runs on localhost only (bind 127.0.0.1; compose publishes on 127.0.0.1) | decided | Condition for D17: an anonymous, open-CORS, unlimited backend must not be reachable from other machines | T0.7, T2.5 |
 | D17 | 2026-10-16 | Scope cuts: no auth/identity/`client_id`, no history API, no caching/retention/dedupe, no PostgreSQL or migrations tool, no rate limits beyond `Semaphore(4)` + 503 when >20 waiting, no queue infrastructure, no JSON logs/metrics/`/healthz`, no circuit breakers (try/except + 5 s timeout), CORS `*` without credentials, no consent screens (README note that Phase 2 reputation sends URLs to third parties) | decided | Focus effort on the detection and safety engine; acceptable for a localhost academic demo | T0.3, T0.6, T0.7, T2.4, T2.5, T3.2 |
 | D16 | 2026-10-19 | Divyesh owns tracks A, B and C until the team splits them; update the module notes when it does | default | Owners needed for review (D21) and the confirm items | All |
-| D15 | — | The 16th supported format | open | Plan says 16, lists 15 | T1.5, T2.6 |
+| D15 | 2026-10-19 | Supported formats = the table in `phase1-spec.md` §7, final; nothing is added. Cite the table, not a count (its 14 rows give 14, 15 or 16 depending on whether RAR4/RAR5 and DOCX/XLSX count as one format or two) | decided | The plan promised "16" without a list; the table is complete for Phase 1 | T1.5, T2.6 |
 | D14 | 2026-10-16 | Python 3.12, `uv`, React + Vite + TS, openapi-typescript; SQLite via SQLAlchemy `create_all` (no Alembic) | default | Matches plan stack; one toolchain for all | T0.1 |
 | D13 | 2026-10-16 | ~~Rate limits per client/IP~~ superseded by D17: 4 concurrent scans, 503 above 20 waiting | decided | Simplification | T2.4 |
 | D12 | 2026-10-16 | `EXT_SPOOFED_NAME` weight 40, `TYPE_POLYGLOT` weight 30 (confirmed 2026-10-19, C4/C5) | decided | Plan gave no weights | T0.5 |
@@ -46,13 +46,13 @@ Newest first. Status: `decided` (team agreed), `default` (chosen to unblock work
 
 Every **[CONFIRM Cn]** marker in `docs/phase1-spec.md`. The default applies until the team
 confirms or changes it; record the outcome here and in the table above. Confirmed by Divyesh
-on 2026-10-19 (owner of all tracks, D16); C3 waits on D15.
+on 2026-10-19 (owner of all tracks, D16); C3 closed by D15 the same day.
 
 | # | Spec | Default in use | Owner | Confirm by | Status |
 | --- | --- | --- | --- | --- | --- |
 | C1 | §4 `LG_MIN_THROUGHPUT_BPS` | 1024 B/s, enforced after a 5 s grace period | Divyesh | Before T2.1 (week 4) | confirmed 2026-10-19 |
 | C2 | §4 `LG_LONG_CHAIN_HOPS` | more than 3 redirects → `REDIR_LONG_CHAIN` | Divyesh | Before T1.4 (week 2) | confirmed 2026-10-19 |
-| C3 | §7 format list | the 15 listed formats; 16th format is D15 | Divyesh | Before T1.5 (week 2) | default confirmed 2026-10-19; 16th format open (D15) |
+| C3 | §7 format list | the §7 table, final (D15) | Divyesh | Before T1.5 (week 2) | confirmed 2026-10-19; list final (D15) |
 | C4 | §8 `EXT_SPOOFED_NAME` weight | 40 (D12) | Divyesh | Before T2.3 (week 4) | confirmed 2026-10-19 |
 | C5 | §8 `TYPE_POLYGLOT` weight | 30 (D12) | Divyesh | Before T2.3 (week 4) | confirmed 2026-10-19 |
 | C6 | §13 non-functional targets | p95 < 3 s for ≤ 5 MB on the demo server; deadline + 2 s; memory bounded by the cap; 4 concurrent scans | Divyesh | Before T3.3 (week 6) | confirmed 2026-10-19 |

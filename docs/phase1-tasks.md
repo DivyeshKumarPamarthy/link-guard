@@ -34,7 +34,7 @@ gate: G0 passed 2026-10-19
   mode: pair · verify: `make lint test` · depends: T0.1, T0.4
 - [x] **T0.9 Docs scaffolding (all).** `docs/threat-model.md` (one page: assets, attackers, SSRF/DoS/XSS/log-leak mitigations, residual risks), `docs/limitations.md`, confirm or edit every **[CONFIRM]** item in the spec and record it in `docs/decisions.md`.
   Accept: no open **[CONFIRM]** without an owner and date in `decisions.md`.
-  *Done 2026-10-19: owner Divyesh for all tracks (D16); C1, C2, C4–C6 confirmed; C3 has an owner and date and waits on D15.*
+  *Done 2026-10-19: owner Divyesh for all tracks (D16); C1–C6 confirmed (C3 via D15: the §7 format table is final).*
   mode: human · verify: none · depends: none
 - [x] **T0.10 Wireframes + Tailwind tokens (C).** Team sketches the 7 screens listed in `docs/ui-style-guide.md` (paper or Figma, photos/exports into `docs/wireframes/`). Claude Code then sets up Tailwind with the guide's colour, type and radius tokens, light + dark, and a `/styleguide` dev-only page showing every verdict badge and the claimed-vs-actual panel with mock data.
   Accept: team approves wireframes; `/styleguide` renders all states in light and dark mode; contrast checked (WCAG AA).

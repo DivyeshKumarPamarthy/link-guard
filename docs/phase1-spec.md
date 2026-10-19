@@ -252,7 +252,8 @@ Add every newly discovered bypass as a row.
 
 ## 7. Supported formats and detection (M4)
 
-**[CONFIRM C3: 15 formats confirmed; 16th open, D15] format list.** The plan says 16 formats but never lists them. Identified 15:
+**[confirmed C3] Format list (final, D15).** The plan says 16 formats but never lists them. The table below is
+the final list; cite it rather than a count (D15):
 
 | Family | Format | Signature |
 | --- | --- | --- |
@@ -271,8 +272,8 @@ Add every newly discovered bypass as a row.
 | image | PNG | `89 50 4E 47 0D 0A 1A 0A` |
 | image | JPEG | `FF D8 FF` |
 
-(ELF and Mach-O are listed as executable family members in the plan; the 16th named format is
-still to be confirmed by the team.)
+(ELF and Mach-O are listed as executable family members in the plan. The table has 14 rows; whether that is
+14, 15 or 16 "formats" depends on counting RAR4/RAR5 and DOCX/XLSX as one or two, so reports cite the table.)
 
 `detect_type(bytes) -> {type, family, confidence: certain|probable|unconfirmed}`. The project's
 table is authoritative; `python-magic` (optional) only logs disagreements.
