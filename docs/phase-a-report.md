@@ -20,8 +20,8 @@ first push (T0.8), owners must be named (T0.9), the team must draw and approve w
 | T0.6 Database | SQLite `scans` table, WAL, `create_all` | ✅ Done |
 | T0.7 API + mock scanner | `POST`/`GET /api/scans`, 400/404/405/413/500, CORS, 127.0.0.1 | ✅ Done |
 | T0.8 CI | 4 GitHub Actions jobs; network blocked in tests | ✅ Done: green on PR #1 |
-| T0.9 Docs scaffolding | Threat model, limitations, C1–C6 confirm list | ⏳ Built; owners pending D16 |
-| T0.10 Wireframes + tokens | Tailwind tokens, components, `/styleguide` | ⏳ Code done; team wireframes pending |
+| T0.9 Docs scaffolding | Threat model, limitations, C1–C6 confirm list | ✅ Done 2026-10-19: owner Divyesh (D16), C1–C6 confirmed (C3 waits on D15) |
+| T0.10 Wireframes + tokens | Tailwind tokens, components, `/styleguide` | ⏳ Code done; draft wireframes waiting for team approval (D32) |
 | T0.11 Report skeleton | Draft notes for chapters 1–2 | ⏳ Draft; team rewrite + supervisor |
 
 ## 2. Verification evidence

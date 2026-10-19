@@ -1,6 +1,6 @@
 # Module: Logging and safe() (X3, task T0.3)
 
-Owner: TBD (track A, D16 open) · Reviewer: TBD · Phase: A · Last updated: 2026-10-17
+Owner: Divyesh (track A, D16) · Reviewer: TBD · Phase: A · Last updated: 2026-10-19
 
 ## What it does (2–3 sentences, plain language)
 

@@ -1,6 +1,6 @@
 # Module: API contract v1 (M1, task T0.4)
 
-Owner: TBD (track B, D16 open) · Reviewer: TBD · Phase: A · Last updated: 2026-10-17
+Owner: Divyesh (track B, D16) · Reviewer: TBD · Phase: A · Last updated: 2026-10-19
 
 ## What it does (2–3 sentences, plain language)
 

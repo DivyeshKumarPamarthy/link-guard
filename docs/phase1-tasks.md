@@ -23,12 +23,12 @@ C = web, test kit, CI. Spec references point to `docs/phase1-spec.md`.
 - [x] **T0.8 CI (C).** GitHub Actions: backend lint (ruff, mypy) + pytest with network disabled (`pytest-socket` or equivalent), web lint + tsc + vitest, contract check that `web/src/api/types.ts` is up to date with `openapi.json`, secret scanning.
   Accept: CI green on the skeleton.
   *Done 2026-10-17: all 4 jobs green on PR #1 (https://github.com/DivyeshKumarPamarthy/link-guard/actions/runs/39012343803).*
-- [ ] **T0.9 Docs scaffolding (all).** `docs/threat-model.md` (one page: assets, attackers, SSRF/DoS/XSS/log-leak mitigations, residual risks), `docs/limitations.md`, confirm or edit every **[CONFIRM]** item in the spec and record it in `docs/decisions.md`.
+- [x] **T0.9 Docs scaffolding (all).** `docs/threat-model.md` (one page: assets, attackers, SSRF/DoS/XSS/log-leak mitigations, residual risks), `docs/limitations.md`, confirm or edit every **[CONFIRM]** item in the spec and record it in `docs/decisions.md`.
   Accept: no open **[CONFIRM]** without an owner and date in `decisions.md`.
-  *Status 2026-10-17: threat model, limitations and C1–C6 written with dates. Not ticked: owners are TBD until D16 is decided, and the team has not confirmed the defaults.*
+  *Done 2026-10-19: owner Divyesh for all tracks (D16); C1, C2, C4–C6 confirmed; C3 has an owner and date and waits on D15.*
 - [ ] **T0.10 Wireframes + Tailwind tokens (C).** Team sketches the 7 screens listed in `docs/ui-style-guide.md` (paper or Figma, photos/exports into `docs/wireframes/`). Claude Code then sets up Tailwind with the guide's colour, type and radius tokens, light + dark, and a `/styleguide` dev-only page showing every verdict badge and the claimed-vs-actual panel with mock data.
   Accept: team approves wireframes; `/styleguide` renders all states in light and dark mode; contrast checked (WCAG AA).
-  *Status 2026-10-17: Tailwind tokens, components and `/styleguide` done; contrast tested. Not ticked: the team still has to sketch and approve the 7 wireframes.*
+  *Status 2026-10-19: Tailwind tokens, components and `/styleguide` done; contrast tested. Draft wireframes of all 7 screens in `docs/wireframes/draft-wireframes.md` (decision D32). Not ticked until the team fills in the approval table.*
 - [ ] **T0.11 Report skeleton + literature survey outline (team, no code).** Fill `docs/report-outline.md` chapter 1–2 headings with notes: problem statement, objectives, comparison with VirusTotal, Chrome Safe Browsing and URL expanders.
   Accept: supervisor has seen the problem statement and scope.
   *Status 2026-10-17: draft notes for chapters 1–2 in `report-outline.md` (claims marked [VERIFY + cite]). Not ticked: the team rewrites them and shows the supervisor.*

@@ -1,6 +1,6 @@
 # Module: Continuous integration (M7, task T0.8)
 
-Owner: TBD (track C, D16 open) · Reviewer: TBD · Phase: A · Last updated: 2026-10-17
+Owner: Divyesh (track C, D16) · Reviewer: TBD · Phase: A · Last updated: 2026-10-19
 
 ## What it does (2–3 sentences, plain language)
 

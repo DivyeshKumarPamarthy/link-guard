@@ -160,9 +160,9 @@ the registry. No reasons + SAFE → "No problems found in the whole file". NO_IS
 | `LG_HEAD_FETCH_BYTES` | 5242880 | Phase 1 byte cap (5 MB) |
 | `LG_CONNECT_TIMEOUT_S` | 5 | |
 | `LG_TOTAL_DEADLINE_S` | 20 | Whole scan including redirects |
-| `LG_MIN_THROUGHPUT_BPS` | 1024 | **[CONFIRM C1]** enforced after a 5 s grace period |
+| `LG_MIN_THROUGHPUT_BPS` | 1024 | **[confirmed C1]** enforced after a 5 s grace period |
 | `LG_MAX_REDIRECTS` | 5 | |
-| `LG_LONG_CHAIN_HOPS` | 3 | **[CONFIRM C2]** more redirects than this → `REDIR_LONG_CHAIN` |
+| `LG_LONG_CHAIN_HOPS` | 3 | **[confirmed C2]** more redirects than this → `REDIR_LONG_CHAIN` |
 | `LG_ALLOWED_PORTS` | `80,443` | |
 | `LG_MAX_URL_LENGTH` | 2048 | |
 | `LG_MAX_CONCURRENT_SCANS` | 4 | `asyncio.Semaphore` size |
@@ -252,7 +252,7 @@ Add every newly discovered bypass as a row.
 
 ## 7. Supported formats and detection (M4)
 
-**[CONFIRM C3] format list.** The plan says 16 formats but never lists them. Identified 15:
+**[CONFIRM C3: 15 formats confirmed; 16th open, D15] format list.** The plan says 16 formats but never lists them. Identified 15:
 
 | Family | Format | Signature |
 | --- | --- | --- |
@@ -330,8 +330,8 @@ Phase 1 codes and starter weights (hypotheses; tuned in Phase 4 only):
 | --- | --- | --- | --- | --- | --- |
 | TYPE_MISMATCH_EXEC | type | 70 | high | risk | hard rule: at least UNSAFE |
 | EXT_DOUBLE | type | 40 | medium | risk | |
-| EXT_SPOOFED_NAME | type | 40 | medium | risk | **[CONFIRM C4]** weight not in plan |
-| TYPE_POLYGLOT | type | 30 | medium | risk | **[CONFIRM C5]** weight not in plan; P1 |
+| EXT_SPOOFED_NAME | type | 40 | medium | risk | **[confirmed C4]** weight not in plan |
+| TYPE_POLYGLOT | type | 30 | medium | risk | **[confirmed C5]** weight not in plan; P1 |
 | TYPE_MISMATCH_TEXT | type | 20 | low | risk | |
 | TYPE_MISMATCH_OTHER | type | 15 | low | risk | |
 | EXT_RISKY | type | 15 | low | risk | |
@@ -455,7 +455,7 @@ A test asserts the `prod` profile rejects all of these.
 Rows 7, 20, 21 and 22 differ from or extend the original plan; see `docs/decisions.md`.
 Assert status, verdict, display_verdict, confidence, scope.mode and required codes — never exact scores.
 
-## 13. Non-functional targets **[CONFIRM C6]**
+## 13. Non-functional targets **[confirmed C6]**
 
 - Scan latency against the local demo server: p95 < 3 s for files ≤ 5 MB (excluding deliberate slow endpoints).
 - Every scan terminates within `LG_TOTAL_DEADLINE_S` + 2 s.

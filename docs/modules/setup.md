@@ -1,6 +1,6 @@
 # Module: Repository setup (M1, task T0.1)
 
-Owner: TBD (track C, D16 open) · Reviewer: TBD · Phase: A · Last updated: 2026-10-17
+Owner: Divyesh (track C, D16) · Reviewer: TBD · Phase: A · Last updated: 2026-10-19
 
 ## What it does (2–3 sentences, plain language)
 
