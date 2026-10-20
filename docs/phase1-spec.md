@@ -194,13 +194,13 @@ no cookies, no auth, `trust_env=False` → handle 3xx manually: resolve relative
 visited URLs, re-run the entire pipeline for the next hop → stream body counting bytes
 actually read, stop at the cap, enforce total deadline and minimum throughput.
 
-Pinned TLS: first task in week 2 is a spike (see tasks T1.3). Preferred approach: httpx with
-the request extension `sni_hostname` while connecting to the IP URL, then verify the
-certificate is checked against the original hostname using the local TLS demo endpoint
-(valid cert → success, wrong-host cert → `FETCH_TLS_ERROR`). If this cannot be made to verify
-hostnames correctly, use a custom transport, and only as a last resort the plan's fallback
-(resolve, validate, connect, re-check the connected peer address) with the residual risk
-written in `docs/limitations.md`.
+Pinned TLS (decided in the T1.3 spike, D41–D43): httpx with the request extension
+`sni_hostname` (original punycode name) while connecting to the IP URL; the certificate is
+checked against the original name (valid cert → success, wrong-host cert → `FETCH_TLS_ERROR`).
+CA certificates come from `certifi`, plus `LG_EXTRA_CA_BUNDLE` in test/demo only. One httpx
+client per hop, closed after it (D41): httpx pools connections by (scheme, IP, port), not by
+SNI, so a shared client could reuse a connection verified for another host. No custom
+transport and no fallback were needed. Code: `backend/app/engine/fetcher/pinned.py`.
 
 `FetchResult` (plain data): `body_head: bytes`, `bytes_read`, `total_size | None`,
 `range_supported: bool`, `ended: "complete" | "cap" | "timeout" | "interrupted" | "error"`,
@@ -234,11 +234,12 @@ written in `docs/limitations.md`.
 | `https://example.com:22/`, `:6379`, `:5432` | rejected / URL_PORT_BLOCKED |
 | `file:///etc/passwd`, `gopher://x/`, `data:text/plain,hi`, `javascript:alert(1)` | rejected / URL_SCHEME_UNSUPPORTED |
 | public demo URL that 302s to `http://127.0.0.1/` | rejected / SSRF_BLOCKED_AT_HOP (chain shown up to that hop) |
-| Rebinding: resolver answers public then private | rejected or fetched from the FIRST validated IP only; resolver called exactly once per hop (assert) |
+| Rebinding: resolver answers public then private | rejected or fetched from the FIRST validated IP only; resolver called exactly once per hop (assert; T1.2 + T1.3) |
 | Host with one public and one private A record | rejected / URL_PRIVATE_ADDRESS |
 | Exempt host `a.demo.test:8081` but on port 8082 | rejected (exemption is exact host:port) |
 | `127.0.0.1:8081` (demo server IP, not the exempt name) | rejected / URL_PRIVATE_ADDRESS |
-| `HTTP_PROXY` set in environment | ignored (assert no proxy used) |
+| `HTTP_PROXY` set in environment | ignored (assert no proxy used): `test_proxy_variables_are_ignored` (T1.3) |
+| Two hosts on one IP: a connection verified for one host is reused for another | never: one client per hop, so the second host gets its own certificate check → TLS error (`FETCH_TLS_ERROR`) if its certificate does not match (D41, T1.3) |
 | `http://127。0。0。1/` (U+3002 ideographic full stops) | rejected / URL_PRIVATE_ADDRESS |
 | `http://0X7F.0.0.1/` (uppercase hex) | rejected / URL_PRIVATE_ADDRESS |
 | `http://[fe80::1%25eth0]/` (IPv6 zone ID) | rejected / URL_INVALID (D38: `%` in host) |
