@@ -59,8 +59,8 @@ test-loop:  ## Unit tests for the automation loop (scripts/loop.py), standard li
 dev:
 	@echo "make dev: not implemented yet (docker-compose arrives in T2.5)"; exit 1
 
-test-ssrf:
-	@echo "make test-ssrf: not implemented yet (SSRF table arrives in T1.2)"; exit 1
+test-ssrf:  ## SSRF table only (fake resolver, socket guard; no network)
+	cd backend && uv run pytest tests/ssrf -q
 
 test-e2e:
 	@echo "make test-e2e: not implemented yet (acceptance matrix arrives in T3.3)"; exit 1

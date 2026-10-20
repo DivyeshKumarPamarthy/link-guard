@@ -46,6 +46,7 @@ SPEC_TABLE = {
     "URL_USERINFO": ("url", 0, "info", "rejected"),
     "URL_PORT_BLOCKED": ("url", 0, "info", "rejected"),
     "URL_SCHEME_UNSUPPORTED": ("url", 0, "info", "rejected"),
+    "URL_INVALID": ("url", 0, "info", "rejected"),  # D38
     "SSRF_BLOCKED_AT_HOP": ("redirect", 0, "info", "rejected"),
     "REDIR_BAD_TARGET": ("redirect", 0, "info", "rejected"),
     "LINK_TYPE_UNSUPPORTED": ("link", 0, "info", "unsupported"),

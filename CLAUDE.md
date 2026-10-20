@@ -40,7 +40,7 @@ in the plan). If something is unspecified, consult the mentor (see "Questions an
 Safety
 - Downloaded bytes are NEVER executed, imported, decompressed beyond caps, or written to a path derived from remote data.
 - Only `backend/app/engine/fetcher/` may open outbound connections to user-supplied URLs. Nothing else may.
-- SSRF checks run on the initial URL AND on every redirect hop. Classify RESOLVED addresses, never hostnames. Reject if ANY resolved address is non-public (`ipaddress` `.is_global`, IPv4-mapped IPv6 judged by its IPv4 part).
+- SSRF checks run on the initial URL AND on every redirect hop. Classify RESOLVED addresses, never hostnames. Reject if ANY resolved address is non-public (`ipaddress` `.is_global`, IPv4-mapped and NAT64 IPv6 judged by their IPv4 part; `::/96`, site-local and multicast never contacted: D40).
 - Connect to the already-validated IP (pinned). Never resolve twice for one hop.
 - TLS verification is never disabled. `trust_env=False` on every HTTP client.
 - All remote data (URLs, filenames, headers) is hostile: escape on display, strip control characters in logs, redact query-string values in logs and shared views.

@@ -184,8 +184,9 @@ Pipeline per hop: parse (real URL parser) → validate scheme (`http`/`https`), 
 no userinfo, port in allow-list, length → normalize host (lowercase, IDNA → punycode, strip
 trailing dot; keep display + punycode forms) → parse IP literals strictly (decimal, octal, hex,
 short forms, full-width digits normalized) → resolve A + AAAA via an injectable `Resolver`
-(`getaddrinfo` in a thread; static hosts first in test/demo) → classify every address with
-`ipaddress` (`is_global`; IPv4-mapped IPv6 by IPv4 part) → reject if any is non-public unless
+(`getaddrinfo` in a thread; static hosts first in test/demo) → classify every address
+(D40: never contact `::/96`, `fec0::/10` or any multicast; judge `::ffff:0:0/96` and
+`64:ff9b::/96` by their embedded IPv4 address; otherwise `ipaddress.is_global`) → reject if any is non-public unless
 `(host, port)` is exempt in test/demo → connect to the chosen validated IP with original Host
 header and SNI/cert hostname = original host → send HEAD; on 405/403/501 or suspicious
 headers fall back to `GET` with `Range: bytes=0-(N-1)`; always `Accept-Encoding: identity`;
@@ -238,6 +239,19 @@ written in `docs/limitations.md`.
 | Exempt host `a.demo.test:8081` but on port 8082 | rejected (exemption is exact host:port) |
 | `127.0.0.1:8081` (demo server IP, not the exempt name) | rejected / URL_PRIVATE_ADDRESS |
 | `HTTP_PROXY` set in environment | ignored (assert no proxy used) |
+| `http://127。0。0。1/` (U+3002 ideographic full stops) | rejected / URL_PRIVATE_ADDRESS |
+| `http://0X7F.0.0.1/` (uppercase hex) | rejected / URL_PRIVATE_ADDRESS |
+| `http://[fe80::1%25eth0]/` (IPv6 zone ID) | rejected / URL_INVALID (D38: `%` in host) |
+| `http://%31%32%37.0.0.1/` (percent-encoded host) | rejected / URL_INVALID (D38: `%` in host) |
+| `http://256.1.1.1/`, `http://08.0.0.1/`, `http://1.2.3.4.5/` | rejected / URL_INVALID (D38: ends in a number, not valid IPv4; never sent to DNS) |
+| URL longer than `LG_MAX_URL_LENGTH` (any hop) | rejected / URL_INVALID (D38) |
+| `http://[::7f00:1]/` (IPv4-compatible IPv6, deprecated) | rejected / URL_PRIVATE_ADDRESS (D40: `::/96` never contacted) |
+| `http://[64:ff9b::7f00:1]/`, `http://[64:ff9b::a00:1]/` (NAT64 of 127.0.0.1, 10.0.0.1) | rejected / URL_PRIVATE_ADDRESS (D40: judged by the embedded IPv4) |
+| Name whose (DNS64) answer is `64:ff9b::7f00:1` | rejected / URL_PRIVATE_ADDRESS (D40) |
+| `http://[fec0::1]/` (IPv6 site-local) | rejected / URL_PRIVATE_ADDRESS (D40) |
+| `http://224.0.0.1/`, `http://239.255.255.250/`, `http://[ff02::1]/` (multicast) | rejected / URL_PRIVATE_ADDRESS (D40) |
+| `http://[64:ff9b:1::7f00:1]/`, `http://[2002:7f00:1::]/`, Teredo `2001:0::/32` | rejected / URL_PRIVATE_ADDRESS (regression rows: `is_global` already refuses them) |
+| Name whose (DNS64) answer is `64:ff9b::5db8:d822` (NAT64 of a public IPv4) | **accepted** (IPv6-only networks keep working) |
 
 Add every newly discovered bypass as a row.
 
@@ -362,6 +376,7 @@ Phase 1 codes and starter weights (hypotheses; tuned in Phase 4 only):
 | URL_USERINFO | url | – | – | rejected | |
 | URL_PORT_BLOCKED | url | – | – | rejected | |
 | URL_SCHEME_UNSUPPORTED | url | – | – | rejected | |
+| URL_INVALID | url | – | – | rejected | new (D38): unparseable, no host, bad port, host ends in a number but is not valid IPv4, `%` in host, longer than `LG_MAX_URL_LENGTH` |
 | SSRF_BLOCKED_AT_HOP | redirect | – | – | rejected | |
 | REDIR_BAD_TARGET | redirect | – | – | rejected | |
 | LINK_TYPE_UNSUPPORTED | link | – | – | unsupported | |
