@@ -53,3 +53,5 @@ select = ["E", "F", "W", "I", "B", "UP"]
 strict = true
 plugins = ["pydantic.mypy"]
 files = ["app", "tests", "scripts"]
+# tests/conftest.py and tests/ssrf/conftest.py: name modules by their full path (tests.ssrf.conftest)
+explicit_package_bases = true

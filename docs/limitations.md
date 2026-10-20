@@ -30,4 +30,6 @@ chapter 7 is written from it. "Planned" names the task or phase that changes it.
 | FastAPI's `/docs` page loads Swagger UI from a CDN | API docs don't open with Wi-Fi off; take report screenshots while online | Self-host the assets if needed for the demo |
 | Demo endpoints `/disguised`, `/cd/{variant}` and `/index` not built yet | Rows needing disguised samples or Content-Disposition variants can't run yet | T1.5 / T2.6 |
 | Demo `/reset` prints an exception traceback in the demo server's terminal | Expected: it is how the server drops the connection on purpose | — |
+| The SSRF check (T1.2) exists but nothing fetches yet; pinning to the checked address is promised by `Target.addresses`, not yet used | No real scan contacts a URL yet | T1.3 (pinned TLS), T2.1 (fetch) |
+| ASCII host names may only use letters, digits, `-`, `_` and `.` | A rare but valid name with other characters is refused as `URL_INVALID` | — |
 | Verified on macOS (Apple Silicon) only | Windows/Linux setup not yet tried by the team | T4.5 fresh-machine check |

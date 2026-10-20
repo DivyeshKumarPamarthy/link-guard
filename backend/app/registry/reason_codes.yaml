@@ -320,6 +320,15 @@ codes:
     message: "Links starting with {scheme}: are not web downloads, so LinkGuard won't open them."
     headline: "Not scanned: {scheme}: links are not web downloads"
 
+  URL_INVALID:
+    group: url
+    weight: 0
+    severity: info
+    outcome: rejected
+    evidence: []
+    message: "The link is not a well-formed web address, so LinkGuard won't contact it."
+    headline: "Not scanned: the link is not a valid web address"
+
   SSRF_BLOCKED_AT_HOP:
     group: redirect
     weight: 0
