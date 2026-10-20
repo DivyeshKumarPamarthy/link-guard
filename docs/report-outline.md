@@ -73,6 +73,7 @@ URL shorteners and malicious redirects.
 
 | Question | Key points |
 | --- | --- |
+| How do you stop DNS rebinding? | Resolve once, connect to the checked IP, send the original name as SNI and check the certificate against it (D43); one client per hop because httpx pools connections by IP, not by name (D41) |
 | Why not just use VirusTotal? | It judges known files; LinkGuard catches disguised/new files from structure, explains why, works before download |
 | What is SSRF and how do you prevent it? | Tricking a server into requesting internal addresses; every resolved IP on every redirect hop is checked, connection pinned to the checked IP, localhost-only backend |
 | Do you run or open the file? | Never; only the first bytes are read and compared with signatures |

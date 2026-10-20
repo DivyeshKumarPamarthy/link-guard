@@ -204,6 +204,7 @@ name = "linkguard-backend"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "certifi" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "idna" },
@@ -226,6 +227,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "certifi", specifier = ">=2026.7.22" },
     { name = "fastapi", specifier = ">=0.143.3" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "idna", specifier = ">=3.20" },

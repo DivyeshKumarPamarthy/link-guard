@@ -19,6 +19,9 @@ jobs:
       - name: Install dependencies from uv.lock
         working-directory: backend
         run: uv sync --locked
+      - name: Install demo server dependencies (integration tests start it, D44)
+        working-directory: demo
+        run: uv sync --locked
       - name: Lint (ruff, mypy)
         run: make lint-backend
       - name: Tests (network sockets blocked by pytest-socket)

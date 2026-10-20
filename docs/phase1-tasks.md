@@ -54,7 +54,7 @@ gate: G0 passed 2026-10-19
 - [x] **T1.2 URL validation + IP classification (A).** Parser, scheme/userinfo/port/length checks, host normalization (IDNA, trailing dot), strict IP-literal parsing (decimal/octal/hex/short/full-width), `Resolver` interface (system + static-hosts + fake for tests), classification with `ipaddress`, exemption logic (exact host:port, test/demo only).
   Accept: every SSRF table row in spec §5 that does not need a redirect passes with a socket guard asserting zero connections.
   mode: pair · verify: `cd backend && uv run pytest tests/ssrf -q` · depends: T0.2, T0.3
-- [ ] **T1.3 Pinned-TLS spike (A). Time-box: 2 days.** Prove a request to the validated IP with SNI + certificate verification against the original hostname, using the 8443 demo listener and the test CA. Record the chosen approach in `docs/decisions.md`; if the fallback is used, record the residual rebinding risk in `docs/limitations.md`.
+- [x] **T1.3 Pinned-TLS spike (A). Time-box: 2 days.** Prove a request to the validated IP with SNI + certificate verification against the original hostname, using the 8443 demo listener and the test CA. Record the chosen approach in `docs/decisions.md`; if the fallback is used, record the residual rebinding risk in `docs/limitations.md`.
   Accept: valid cert → 200; wrong-host cert → TLS error; resolver called exactly once.
   mode: pair · verify: `cd backend && uv run pytest tests/unit/test_pinned_tls.py -q` · depends: T1.1, T1.2
 - [ ] **T1.4 Redirect handling (A).** Manual redirects (max 5), relative Location, visited-set loop detection, full re-validation per hop, downgrade flag, hop records, rejected-at-hop with chain so far, non-HTTP targets (unsupported vs rejected per spec §6).
