@@ -4,8 +4,8 @@ Owner: Divyesh (track A, D16) · Reviewer: TBD · Phase: B · Last updated: 2026
 
 This note grows with each fetcher task. **Done so far: T1.2, the target check** (URL
 validation, host normalization, IP literals, resolvers, address classification, demo
-exemption) **and T1.3, pinned connections** (see "Pinned connections" below). Still to
-come: redirects (T1.4), the streaming fetch (T2.1).
+exemption), **T1.3, pinned connections** and **T1.4, redirects** (see the sections below).
+Still to come: the streaming fetch (T2.1).
 
 ## What it does (2–3 sentences, plain language)
 
@@ -89,6 +89,35 @@ rejected: it still shares one pool and one cookie jar (also keyed by IP) across 
 A canary test asserts the unsafe httpx behaviour on a shared client, so the team notices if
 a future httpx version changes it.
 
+## Redirects (T1.4, `redirects.py`, D45–D51)
+
+**What:** httpx never follows redirects (`follow_redirects=False`); `follow_redirects()` does
+it by hand so that every redirect target is checked exactly like a pasted link, with one DNS
+lookup per hop, before anything is sent to it. It records the chain and, if it stops early,
+says why and where. The function that contacts one hop is passed in, so the logic is tested
+with fakes and T2.1 plugs in the real request.
+
+**For each redirect, in this order (D46):**
+1. Only 301/302/303/307/308 with a `Location` are redirects (D45); two *different*
+   `Location` headers are refused (`REDIR_BAD_TARGET`), because clients disagree on which
+   one wins (D51).
+2. Resolve a relative `Location` against the current URL; drop the fragment.
+3. More than `LG_MAX_REDIRECTS` → `REDIR_TOO_MANY`; that target is never looked up.
+4. `magnet:`, `ftp:`, `intent:`, or a `.torrent` path → "not supported yet" (D6, D50);
+   any other non-web scheme → `REDIR_BAD_TARGET` with the reason in plain words (D51).
+5. Already visited → `REDIR_LOOP`.
+6. The full `check_target`. A private address becomes `SSRF_BLOCKED_AT_HOP {hop}`; an
+   invalid or too-long URL `REDIR_BAD_TARGET`; a blocked port or user name keeps its own
+   code; no DNS answer `FETCH_DNS_ERROR` (D47).
+
+**Facts about the chain (D49)**, reported even when the chain stops later: the first
+https → http switch (`REDIR_DOWNGRADE {hop}`), more than `LG_LONG_CHAIN_HOPS` redirects
+(`REDIR_LONG_CHAIN`), and a change of host (`REDIR_CROSS_DOMAIN`, `link_type = shortened`).
+Hosts are compared in their ASCII (punycode) form; the Unicode form is only shown.
+
+**Hop records (D48):** one per URL that went through the checks; a refused one is listed as
+`blocked` with no status, so the report shows the chain up to where it stopped.
+
 ## How it is tested (test files, acceptance rows it covers)
 
 - `backend/tests/ssrf/test_ssrf_table.py`: every spec §5 row that needs no redirect or fetch,
@@ -98,7 +127,17 @@ a future httpx version changes it.
   checks, `URL_INVALID` cases (D38), the exemption, the resolvers, and the IP-literal parser.
 - `backend/tests/ssrf/fakes.py`: `FakeResolver` (fixed answers, records every lookup).
   `conftest.py` adds a socket guard that fails any test that tries real DNS or a connection.
-- Run: `make test-ssrf`. Row left for T1.4: redirect to a private address.
+- Run: `make test-ssrf`. All spec §5 rows are now covered.
+- `backend/tests/ssrf/test_redirect_hops.py` (T1.4, no sockets): a public link that
+  redirects to loopback, metadata, `[::1]`, `0x7f.1`, `//127.0.0.1/`, a name resolving to
+  loopback, or a mixed-record name stops with `SSRF_BLOCKED_AT_HOP`, the chain kept and the
+  target never contacted; one lookup per hop (rebinding); the demo exemption does not cover
+  a redirect to the demo server's IP.
+- `backend/tests/unit/test_redirects.py` (T1.4): redirect statuses, relative locations,
+  too-many, loops, bad and unsupported targets, refusals at a hop, conflicting or over-long
+  `Location`, downgrade, long chain, cross-domain; plus `integration` tests against the
+  demo server's chain (row 8), loop (row 10), redirect to localhost (row 11), https → http
+  downgrade and too-many endpoints. The demo fixture is shared in `tests/demo_server.py`.
 - `backend/tests/unit/test_pinned_tls.py` (T1.3, marked `integration`, D44): starts the real
   demo server as a subprocess on free loopback ports with a fresh test CA, and may open
   sockets to 127.0.0.1 only. Valid certificate → 200; wrong-host certificate → certificate
@@ -139,5 +178,10 @@ a future httpx version changes it.
   for every hop (D41).
 - *Why certifi instead of the system's certificates?* The same CA list on every machine,
   including uv's standalone Python, which may not find the system store (D43).
+- *Why follow redirects yourself instead of letting httpx do it?* httpx would follow a
+  redirect to 127.0.0.1 without our checks. Every hop must pass the same checks as the
+  pasted link, with one lookup, before anything is sent.
+- *What if a redirect has two Location headers?* Refused: different clients pick different
+  ones, so we could approve one target while a browser follows the other (D51).
 - *How do the tests prove no network was used?* The fake resolver records every lookup, and
   the socket guard fails the test on any real DNS call or connect.

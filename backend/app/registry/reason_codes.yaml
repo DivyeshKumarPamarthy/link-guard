@@ -343,9 +343,9 @@ codes:
     weight: 0
     severity: info
     outcome: rejected
-    evidence: [scheme]
-    message: "The link redirects to a {scheme}: address, which LinkGuard won't follow."
-    headline: "Not scanned: the link redirects to a non-web address"
+    evidence: [reason, detail]  # reason: plain words for the message; detail: scheme or cause
+    message: "The link redirects to an address LinkGuard won't follow: {reason}."
+    headline: "Not scanned: the link redirects to an address LinkGuard won't follow"
 
   # --- unsupported: planned for a later phase ------------------------------------------
   LINK_TYPE_UNSUPPORTED:

@@ -3,6 +3,7 @@
 Run: make test-loop
 """
 
+import datetime
 import json
 import shutil
 import tempfile
@@ -430,14 +431,19 @@ def mentor_reply(*escalate: bool) -> dict[str, object]:
 CHANGES: dict[str, object] = {"verdict": "changes_needed", "problems": ["x.py:3 hard-coded cap"]}
 
 
+LOOP_RECORDS = {"log.md": "Loop log", "questions.md": "Loop questions", "digest.md": "Loop digest"}
+
+
 class LoopTestCase(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.tmp)
         (self.tmp / "docs" / "loop").mkdir(parents=True)
         shutil.copytree(REPO / ".loop", self.tmp / ".loop")
-        for name in ("log.md", "questions.md", "digest.md"):
-            shutil.copy(REPO / "docs" / "loop" / name, self.tmp / "docs" / "loop" / name)
+        # Minimal stand-ins, not the real files: the real records grow with the project
+        # (and carry dates), so copying them made results depend on the repo and the day.
+        for name, title in LOOP_RECORDS.items():
+            (self.tmp / "docs" / "loop" / name).write_text(f"# {title}\n\nAppend-only.\n")
         self.write_tasks(tasks_file())
         self.output: list[str] = []
 
@@ -766,9 +772,24 @@ class MentorTests(LoopTestCase):
                 runner.committed[f"task/{task_id}"]["digest.md"]
             )  # as if that branch were merged
         digest = (self.tmp / "docs/loop/digest.md").read_text()
-        self.assertEqual(digest.count("\n## 20"), 1)
+        today = datetime.date.today().isoformat()
+        self.assertEqual(digest.count("\n## "), 1)
+        self.assertEqual(digest.count(f"\n## {today}\n"), 1)
         self.assertIn("### T1.5", digest)
         self.assertIn("### T1.1", digest)
+
+    def test_a_new_day_gets_its_own_heading(self) -> None:
+        """The case that broke CI on 2026-10-21: the digest already ends with an earlier
+        day's section, so today's block needs a new heading below it."""
+        digest_path = self.tmp / "docs/loop/digest.md"
+        digest_path.write_text("# Loop digest\n\n## 2000-01-01\n\n### T0.1 · old block\n")
+        runner = FakeRunner(implement=[DONE], reviews=[APPROVE])
+        self.run_one(runner)
+        digest = runner.committed["task/T1.5"]["digest.md"]
+        today = datetime.date.today().isoformat()
+        self.assertEqual(digest.count("\n## "), 2)
+        self.assertLess(digest.index("## 2000-01-01"), digest.index(f"## {today}"))
+        self.assertGreater(digest.index("### T1.5"), digest.index(f"## {today}"))
 
     def test_ctrl_c_after_a_mentor_answer_keeps_the_decision(self) -> None:
         class InterruptedVerify(FakeRunner):
