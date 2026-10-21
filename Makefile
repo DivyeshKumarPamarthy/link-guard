@@ -10,7 +10,7 @@ setup:  ## Install backend + demo (uv, from uv.lock) and web (npm, from package-
 	cd demo && uv sync --locked
 	cd web && npm ci
 
-test: test-backend test-web test-demo  ## Backend pytest (sockets blocked), web vitest, demo pytest
+test: test-backend test-web test-demo test-loop  ## Backend pytest (sockets blocked), web vitest, demo pytest, loop unit tests
 
 test-backend:
 	cd backend && uv run pytest

@@ -118,7 +118,7 @@ output must be plain JSON-compatible models, no shared in-memory objects).
 make setup        # uv sync; npm ci in web/
 make dev          # docker-compose up (api :8000, web :5173, demo :8081/:8443/:8444)
 make demo-server  # demo server only: HTTP :8081, HTTPS :8443, wrong-cert HTTPS :8444
-make test         # backend pytest (no internet) + web vitest + demo smoke tests
+make test         # backend pytest (no internet) + web vitest + demo smoke tests + loop unit tests
 make test-ssrf    # SSRF table only
 make test-e2e     # acceptance matrix against the demo server
 make samples      # regenerate samples via demo/make_samples.py
