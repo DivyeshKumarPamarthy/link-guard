@@ -14,6 +14,10 @@ so the same input always gives the same answer and every verdict can be replayed
   Range confirmed, how the stream ended, headers-only), the `Registry`, `Thresholds` (config
   `LG_SUSPICIOUS_SCORE`=30, `LG_UNSAFE_SCORE`=60).
 - Output: `ScoreOutcome` — the outcome fields of `ScanResult`, plus `unknown_codes`.
+- Where the input comes from (T2.4, D66): `findings` = the fetcher's `findings` plus its
+  `failure` (if any) plus the detector's findings; `ReadFacts` is copied from `FetchResult`
+  (`bytes_read`, `total_size`, `range_supported`, `ended`, and `headers_only` = `metadata_only`,
+  set by the fetcher's web-page stop, D53).
 - Code: `backend/app/engine/scoring/scorer.py`, `backend/app/engine/scoring/scope.py`.
 
 ## How it works (5–10 lines; the steps you would draw on a whiteboard)
@@ -25,14 +29,17 @@ so the same input always gives the same answer and every verdict can be replayed
 4. Score = sum over groups of the highest weight in that group, capped at 100.
 5. Verdict = the stronger of the score verdict (≥ 60 UNSAFE, ≥ 30 SUSPICIOUS) and any hard
    rule; if that is still SAFE but an `unable` code is present → UNABLE_TO_VERIFY.
-6. Scope from `ReadFacts`: full / partial / metadata-only / none; `FETCH_UNEXPECTED_ENCODING`
-   forces partial. Confidence: high = full; medium = partial + confirmed Range + known size;
+6. Scope from `ReadFacts`: full / partial / metadata-only / none. Full only when the stream
+   ended on its own AND `total_size` is known and equals `bytes_read` (D54: a body read until
+   the connection closed is partial); `FETCH_UNEXPECTED_ENCODING` forces partial. Confidence: high = full; medium = partial + confirmed Range + known size;
    low = everything else and every UNABLE_TO_VERIFY.
 7. Display verdict: SAFE only for verdict SAFE + full scope + confidence ≥ medium; otherwise
    SAFE becomes NO_ISSUES_IN_CHECKED_PART.
 8. Headline: NO_ISSUES → "No issues found in the checked part ({label})"; otherwise the top
    reason's registry headline, taken only from the codes that decided a rejected, unsupported
-   or unable result (D49); no reasons → "No problems found in the whole file".
+   or unable result (D49, D63); no reasons → "No problems found in the whole file".
+   Scope labels (D64) are shown unchanged, e.g. "(First 5 MB of 200 MB)"; examples are in
+   `docs/ui-style-guide.md`.
 
 ## Why it is designed this way (the decision and the simpler/harder alternative you rejected)
 
@@ -52,13 +59,17 @@ so the same input always gives the same answer and every verdict can be replayed
   Covers the scoring side of acceptance rows 2, 3, 4, 5, 7, 10, 11, 13, 14, 17, 18, 20.
 - `backend/tests/unit/test_scorer.py`: thresholds from a test registry and from config,
   cap at 100, ordering, confidence table, unknown code, missing evidence, purity, and every
-  registry code × four read shapes accepted by the `ScanResult` validator (D29).
+  registry code × four read shapes accepted by the `ScanResult` validator (D29), and D54:
+  a body read until close is partial, a cleanly ended chunked body is full.
+- `backend/tests/unit/test_config.py`: the threshold defaults equal spec §9 (30/60), startup
+  refuses suspicious ≥ unsafe, and the active thresholds are logged at startup (D62).
 
 ## Known limitations
 
 - Weights and thresholds are starter hypotheses (tuned in Phase F only).
 - Thresholds live in config, not the registry, so the same `rules_version` could give
-  different verdicts if someone changes `LG_*_SCORE`.
+  different verdicts if someone changes `LG_*_SCORE`. Mitigations (D62): the values are
+  logged at every startup, and a test fails if the defaults differ from spec §9.
 - A missing evidence key renders as "unknown" instead of failing the scan.
 
 ## Likely viva questions (and your short answers)

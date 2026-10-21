@@ -75,7 +75,7 @@ gate: G0 passed 2026-10-19
 - [ ] **T2.2 Mismatch checks (B).** All checks in spec §7 as separate functions with equivalence classes; DOCX/XLSX subtype via in-memory listing for full-scope ZIPs only.
   Accept: one positive and one negative test per check; clean samples of every format produce no mismatch codes.
   mode: auto · verify: `cd backend && uv run pytest tests/unit/test_mismatch.py -q` · depends: T1.5
-- [ ] **T2.3 Scorer v1 + explanations (B).** Pure scorer (spec §9), outcome rules, scope, confidence, display verdict, headline (spec §3); golden tests.
+- [x] **T2.3 Scorer v1 + explanations (B).** Pure scorer (spec §9), outcome rules, scope, confidence, display verdict, headline (spec §3); golden tests.
   Accept: golden tests for thresholds 29/30/59/60, hard rule, grouping, unable vs risk precedence, partial never shows SAFE.
   mode: auto · verify: `cd backend && uv run pytest tests/golden tests/unit/test_scorer.py -q` · depends: T0.4, T0.5
 - [ ] **T2.4 Orchestrator + in-process executor (B).** Executor interface (JSON-compatible input/output), in-process executor running router → fetcher → detectors as an asyncio background task, `asyncio.Semaphore(LG_MAX_CONCURRENT_SCANS)`, waiting counter → 503 `SERVER_BUSY` above `LG_MAX_WAITING_SCANS`, overall timeout, state transitions persisted, output validated before scoring, `ANALYSIS_ERROR` on exceptions. No dedupe. May call a pass-through router stub; T3.1 replaces it with the real router.

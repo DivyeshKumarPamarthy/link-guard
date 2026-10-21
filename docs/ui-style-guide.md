@@ -39,6 +39,12 @@ Rules: verdict is always word + icon, never colour alone. "No issues in the chec
 different colour from "Safe" on purpose. "Unable to verify" is neutral grey: it is not a warning
 and not a pass.
 
+The "No issues in the checked part" headline always says what was read, using the scope label
+exactly as the backend sends it (capital letter included, never lower-cased in the UI), e.g.
+"No issues found in the checked part (First 5 MB of 200 MB)". Other labels: "Whole file
+checked (47 KB)", "First 4 KB (total size unknown)", "3 KB read, but sent compressed",
+"Only the server's headers were read", "Nothing was read" (decision D64).
+
 Icons: `lucide-react` (free, tree-shaken, no component library). Same icon per verdict everywhere.
 
 ## Type

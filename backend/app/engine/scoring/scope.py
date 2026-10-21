@@ -27,8 +27,11 @@ class ReadFacts:
 
 
 def scope_mode(status: Status, read: ReadFacts, unexpected_encoding: bool) -> ScopeMode:
-    """Spec §3. `full` needs a stream that ended on its own with every expected byte;
-    an unexpected encoding forces `partial` because the bytes were not the file itself."""
+    """Spec §3 and D54. `full` needs a stream that ended on its own with every byte of a
+    KNOWN length (Content-Length, the Content-Range total, or a chunked body that ended with
+    its terminating chunk: the fetcher then sets total_size). A body read until the
+    connection closed has no known length, so it is partial. An unexpected encoding forces
+    `partial` because the bytes were not the file itself."""
     if status != Status.completed:
         return ScopeMode.none
     if read.headers_only:
@@ -37,8 +40,7 @@ def scope_mode(status: Status, read: ReadFacts, unexpected_encoding: bool) -> Sc
         return ScopeMode.none
     if unexpected_encoding:
         return ScopeMode.partial
-    size_matches = read.total_size is None or read.bytes_read == read.total_size
-    if read.ended == "complete" and size_matches:
+    if read.ended == "complete" and read.total_size == read.bytes_read:
         return ScopeMode.full
     return ScopeMode.partial
 

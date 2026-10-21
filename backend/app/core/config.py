@@ -128,8 +128,6 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def _guard_profile(self) -> "Settings":
         """Refuse demo-only exemptions outside test/demo, so they can never weaken SSRF checks."""
-        if self.suspicious_score >= self.unsafe_score:
-            raise ValueError("LG_SUSPICIOUS_SCORE must be below LG_UNSAFE_SCORE")
         if self.profile in EXEMPTION_PROFILES:
             return self
         present = [
@@ -147,6 +145,23 @@ class Settings(BaseSettings):
                 f"(current profile: {self.profile})"
             )
         return self
+
+    @model_validator(mode="after")
+    def _check_thresholds(self) -> "Settings":
+        """SUSPICIOUS must start below UNSAFE, or a score could skip a verdict (D62)."""
+        if self.suspicious_score >= self.unsafe_score:
+            raise ValueError("LG_SUSPICIOUS_SCORE must be below LG_UNSAFE_SCORE")
+        return self
+
+
+def log_active_thresholds(settings: Settings) -> None:
+    """Log the verdict thresholds at startup, so a changed value is visible in every run
+    (the values are fixed by spec §9; D62)."""
+    logger.info(
+        "Verdict thresholds: SUSPICIOUS at score >= %d, UNSAFE at score >= %d",
+        settings.suspicious_score,
+        settings.unsafe_score,
+    )
 
 
 def log_active_exemptions(settings: Settings) -> None:

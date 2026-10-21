@@ -294,3 +294,27 @@ def test_every_registry_code_gives_a_result_the_contract_accepts(
 )
 def test_format_size(n: int, text: str) -> None:
     assert format_size(n) == text
+
+
+# --- D54: full scope needs a KNOWN length ------------------------------------------------------
+
+
+def test_body_read_until_close_with_no_length_is_partial() -> None:
+    """D54: without a Content-Length, a Content-Range total or a terminating chunk, nothing
+    proves the whole file arrived, so a clean result must not show plain Safe."""
+    read = ReadFacts(bytes_read=4096, total_size=None, range_supported=False, ended="complete")
+    outcome = score([], read)
+    assert outcome.scope.mode == ScopeMode.partial
+    assert outcome.scope.label == "First 4 KB (total size unknown)"
+    assert outcome.display_verdict == DisplayVerdict.NO_ISSUES_IN_CHECKED_PART
+    assert outcome.confidence == Confidence.low
+
+
+def test_chunked_body_that_ended_cleanly_is_full() -> None:
+    """The fetcher sets total_size = bytes read when a chunked body ends with its terminating
+    chunk (D54), so such a file is a whole-file read."""
+    read = ReadFacts(bytes_read=4096, total_size=4096, range_supported=False, ended="complete")
+    outcome = score([], read)
+    assert outcome.scope.mode == ScopeMode.full
+    assert outcome.display_verdict == DisplayVerdict.SAFE
+    assert outcome.confidence == Confidence.high

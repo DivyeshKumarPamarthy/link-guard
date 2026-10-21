@@ -15,7 +15,12 @@ from fastapi.openapi.utils import get_openapi
 from app.api.errors import install_error_handlers
 from app.api.limits import BodySizeLimit
 from app.api.routes import router
-from app.core.config import Settings, get_settings, log_active_exemptions
+from app.core.config import (
+    Settings,
+    get_settings,
+    log_active_exemptions,
+    log_active_thresholds,
+)
 from app.db.models import make_engine, make_session_factory
 from app.engine import ENGINE_VERSION
 from app.orchestrator.mock_executor import Executor, MockExecutor
@@ -43,6 +48,7 @@ def create_app(settings: Settings | None = None, executor: Executor | None = Non
     settings = settings or get_settings()
     registry = get_registry()  # fails startup if the registry is invalid
     log_active_exemptions(settings)
+    log_active_thresholds(settings)
 
     store = ScanStore(
         make_session_factory(make_engine(settings.database_url)), registry.rules_version
