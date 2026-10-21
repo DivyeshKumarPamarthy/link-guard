@@ -52,6 +52,10 @@ Escalated, answered by Divyesh (2026-10-21):
 
 ### T2.3 · task/T2.3 · stopped (blocked): claude did not finish: error_max_budget_usd
 
+## 2026-10-21
+
+### T2.1 · task/T2.1 · interactive session (pair task)
+
 Decided by the mentor:
 
 | Question | Decision | Rationale |
@@ -68,3 +72,18 @@ The parked work passed its verify command; review fixes: scope full only for a k
 (D54), thresholds in their own validator plus a startup log and a spec-value test (D62), the
 scope-label example moved to `docs/ui-style-guide.md` (D64). The 5 decisions above are D62–D66;
 T2.2's 9 decisions are recorded as D67–D75 so the T2.2 rerun follows them.
+| HEAD fallback? | HEAD, then always one GET with Range (trusted); HEAD redirects followed without GET (D52) | Plan M2: trust the GET |
+| Web page before the body? | Checked on the GET's headers; the fetcher adds LINK_IS_WEB_PAGE, metadata-only (D53) | A metadata-only result must never score Safe |
+| Range handling and full scope? | 206 + valid Content-Range starting at 0; full only when bytes read equal a known length (D54) | Spec §3; under-claim when unsure |
+| How is the cap counted? | Raw bytes actually read; Content-Length never trusted (D55) | Plan M2 |
+| gzip/deflate bodies? | Decoded, never past the cap; FETCH_UNEXPECTED_ENCODING; partial (D56) | D10; decompression bombs |
+| Error statuses and 429? | 401/403 auth, 429 one short retry, others HTTP error (D57) | Spec §8; no retry loop |
+| Timeouts? | Total deadline + min throughput after a 5 s grace; bytes kept (D58) | C1, row 14 |
+| Errors without a status? | FETCH_INTERRUPTED; TLS by exception chain; FETCH_EMPTY for 0 bytes (D59) | Honest messages |
+| Headers, timings, test layout? | Whitelist from the trusted response; `fetch`/`first_byte`; integration + helper tests (D60) | Spec §5 |
+
+Escalated, answered by Divyesh (2026-10-21):
+
+- `FETCH_UNSUPPORTED_ENCODING` approved (D61); the two config variables added to spec §4; D52, D53, D55–D60 upgraded to decided
+- D54 changed: a chunked body that ends cleanly (terminating chunk) is the whole file; a body read until close with no length stays partial
+- Module note: T3.1 must reuse the fetcher's web-page check and never add `LINK_IS_WEB_PAGE` twice

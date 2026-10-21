@@ -161,6 +161,8 @@ the registry. No reasons + SAFE → "No problems found in the whole file". NO_IS
 | `LG_CONNECT_TIMEOUT_S` | 5 | |
 | `LG_TOTAL_DEADLINE_S` | 20 | Whole scan including redirects |
 | `LG_MIN_THROUGHPUT_BPS` | 1024 | **[confirmed C1]** enforced after a 5 s grace period |
+| `LG_MIN_THROUGHPUT_GRACE_S` | 5 | grace period for the throughput rule, from the first body byte (C1, D58) |
+| `LG_MAX_RETRY_AFTER_S` | 5 | a 429 is retried once only if `Retry-After` is whole seconds ≤ this (D57) |
 | `LG_MAX_REDIRECTS` | 5 | |
 | `LG_LONG_CHAIN_HOPS` | 3 | **[confirmed C2]** more redirects than this → `REDIR_LONG_CHAIN` |
 | `LG_ALLOWED_PORTS` | `80,443` | |
@@ -206,7 +208,9 @@ transport and no fallback were needed. Code: `backend/app/engine/fetcher/pinned.
 `range_supported: bool`, `ended: "complete" | "cap" | "timeout" | "interrupted" | "error"`,
 `status_code`, whitelisted headers (`content-type`, `content-length`, `content-disposition`,
 `content-range`, `content-encoding`, `etag`, `last-modified`, `location`, `retry-after`),
-`hops: [ {url, status, address_class} ]`, `timings`, `failure_code | None`.
+`hops: [ {url, status, address_class} ]`, `timings`, `failure_code | None`. Implemented in
+`backend/app/engine/fetcher/fetch.py` (T2.1, D52–D61), which also returns `findings`,
+`metadata_only`, `chunked`, the final URL/hosts and `whole_file` (full scope, D54).
 
 ### SSRF test table (all must be rejected; a socket guard fails the test on any outbound connect)
 
@@ -367,6 +371,7 @@ Phase 1 codes and starter weights (hypotheses; tuned in Phase 4 only):
 | FETCH_UNEXPECTED_ENCODING | fetch | 0 | info | info | forces confidence low, scope partial |
 | LINK_IS_WEB_PAGE | link | 0 | info | unable | |
 | FETCH_TIMEOUT | fetch | 0 | info | unable | |
+| FETCH_UNSUPPORTED_ENCODING | fetch | 0 | info | unable | new (D61): br, zstd, compress, stacked or corrupt encodings; never decoded |
 | FETCH_INTERRUPTED | fetch | 0 | info | unable | only when too few bytes to detect a type |
 | FETCH_EMPTY | fetch | 0 | info | unable | |
 | FETCH_AUTH_REQUIRED | fetch | 0 | info | unable | 401/403 |

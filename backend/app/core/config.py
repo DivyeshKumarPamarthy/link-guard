@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     connect_timeout_s: float = Field(5, gt=0)
     total_deadline_s: float = Field(20, gt=0)
     min_throughput_bps: int = Field(1024, ge=0)
+    min_throughput_grace_s: float = Field(5, ge=0)  # C1: throughput checked after this
+    max_retry_after_s: int = Field(5, ge=0)  # a 429 is retried once only if it asks <= this
     max_redirects: int = Field(5, ge=0)
     long_chain_hops: int = Field(3, ge=0)
     allowed_ports: Annotated[tuple[int, ...], NoDecode] = (80, 443)

@@ -69,7 +69,7 @@ gate: G0 passed 2026-10-19
 
 ## Phase B, sprint 2 — Weeks 4–5
 
-- [ ] **T2.1 Streaming fetch (A).** HEAD → GET-with-Range fallback, `Accept-Encoding: identity`, byte cap counting bytes actually read, total deadline + min throughput, Range verification (206 + Content-Range), ignore-Range handling, unexpected encoding, error-status mapping (401/403/429/404/410/5xx), one retry max for 429 with short Retry-After, empty body, interrupted stream, DNS and TLS errors. Returns `FetchResult` (spec §5).
+- [x] **T2.1 Streaming fetch (A).** HEAD → GET-with-Range fallback, `Accept-Encoding: identity`, byte cap counting bytes actually read, total deadline + min throughput, Range verification (206 + Content-Range), ignore-Range handling, unexpected encoding, error-status mapping (401/403/429/404/410/5xx), one retry max for 429 with short Retry-After, empty body, interrupted stream, DNS and TLS errors. Returns `FetchResult` (spec §5).
   Accept: fetcher integration tests against the demo server for each endpoint; a 200 MB stream stops at 5 MB within seconds with stable memory.
   mode: pair · verify: `make test-backend` · depends: T1.1, T1.4
 - [ ] **T2.2 Mismatch checks (B).** All checks in spec §7 as separate functions with equivalence classes; DOCX/XLSX subtype via in-memory listing for full-scope ZIPs only.

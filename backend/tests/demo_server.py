@@ -54,10 +54,12 @@ class Demo:
     https_port: int
     wrong_cert_port: int
     ca: Path
+    samples_dir: Path  # tests write the sample files the /f and /gzip endpoints serve
 
-    def settings(self) -> Settings:
-        """Test profile with the demo exemption (D2) for every demo name on every port."""
-        ports = (self.http_port, self.https_port, self.wrong_cert_port)
+    def settings(self, extra_ports: tuple[int, ...] = ()) -> Settings:
+        """Test profile with the demo exemption (D2) for every demo name on every port
+        (plus `extra_ports`, e.g. a closed one)."""
+        ports = (self.http_port, self.https_port, self.wrong_cert_port, *extra_ports)
         return Settings(
             profile="test",
             static_hosts={name: "127.0.0.1" for name in DEMO_NAMES},
@@ -76,8 +78,10 @@ def run_demo_server(root: Path) -> Iterator[Demo]:
         **os.environ,
         **{f"DEMO_{name}_PORT": str(port) for name, port in ports.items()},
         "DEMO_CERTS_DIR": str(root / "certs"),
-        "DEMO_SAMPLES_DIR": str(root),
+        "DEMO_SAMPLES_DIR": str(root / "samples"),
+        "DEMO_SLOW_INTERVAL_S": "0.3",  # slow-drip tests finish in about a second
     }
+    (root / "samples").mkdir(exist_ok=True)
     log = root / "demo-server.log"
     with log.open("wb") as out:
         process = subprocess.Popen(
@@ -90,11 +94,19 @@ def run_demo_server(root: Path) -> Iterator[Demo]:
         for port in ports.values():
             wait_for_port(port, process, log)
         yield Demo(
-            ports["HTTP"], ports["HTTPS"], ports["WRONG_CERT"], root / "certs" / "test-ca.pem"
+            ports["HTTP"],
+            ports["HTTPS"],
+            ports["WRONG_CERT"],
+            root / "certs" / "test-ca.pem",
+            root / "samples",
         )
     finally:
         process.terminate()
-        process.wait(timeout=10)
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:  # still streaming to a test that stopped reading
+            process.kill()
+            process.wait(timeout=5)
 
 
 class RecordingResolver(StaticHostsResolver):

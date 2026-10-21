@@ -16,6 +16,7 @@ Target, so sharing the client within a hop is safe; never share it across hops o
 """
 
 import ssl
+from http.cookiejar import CookieJar, DefaultCookiePolicy
 from urllib.parse import urlsplit
 
 import certifi
@@ -39,12 +40,17 @@ def tls_context(settings: Settings) -> ssl.SSLContext:
 def new_client(settings: Settings, context: ssl.SSLContext) -> httpx.AsyncClient:
     """A client for ONE hop (D41). trust_env=False: proxy variables, .netrc and the
     environment's CA settings are ignored. Redirects are handled by the fetcher (T1.4),
-    which checks every hop again, so httpx must never follow them itself."""
+    which checks every hop again, so httpx must never follow them itself. The cookie jar
+    accepts no cookies (no allowed domains), so a Set-Cookie on the HEAD is never sent back
+    on the GET (spec §5: no cookies). Every timeout (connect, read, write, pool) is
+    LG_CONNECT_TIMEOUT_S, so a server that stops sending is caught too."""
+    no_cookies = CookieJar(policy=DefaultCookiePolicy(allowed_domains=[]))
     return httpx.AsyncClient(
         verify=context,
         trust_env=False,
         follow_redirects=False,
         timeout=httpx.Timeout(settings.connect_timeout_s),
+        cookies=no_cookies,
     )
 
 
