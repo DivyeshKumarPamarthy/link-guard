@@ -21,7 +21,7 @@ report, unable to verify, rejected, unsupported, or an error/busy screen.
 4. Every failure becomes an `ApiError` with a `kind`: `input` (our own 400 message, shown under the input), `unreachable` (fetch threw), `busy` (503), `server` (500, 404, unreadable JSON, unknown schema major).
 5. `ReportScreen` picks the layout from `display_verdict` only (D4): band + headline, then claimed vs actual, why, where the link went, and collapsed details for scanned results; hints for unable (`screens/hints.ts`, keyed by reason code, D33); the "protects your network" note for rejected.
 6. URLs are mono text via `UrlText`: middle-truncated with "Show all", "Copy URL", never a link.
-7. All remote text goes through React text nodes and `showInvisible()`, so HTML stays text and bidi characters show as `‮`.
+7. All remote text goes through React text nodes and `showInvisible()`, so HTML stays text and bidi characters show as `\u202E` (the escape text, never the character itself).
 
 ## Why it is designed this way (the decision and the simpler/harder alternative you rejected)
 
