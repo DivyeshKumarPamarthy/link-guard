@@ -1,0 +1,4 @@
+{"status": "completed", "verdict": "UNABLE_TO_VERIFY", "display_verdict": "UNABLE_TO_VERIFY", "score": 15, "confidence": "low",
+ "scope_mode": "partial", "scope_label": "First 4 KB (total size unknown)",
+ "headline": "The server was too slow to check the file",
+ "reason_codes": ["EXT_RISKY", "FETCH_TIMEOUT"]}

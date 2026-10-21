@@ -1,0 +1,4 @@
+{"status": "completed", "verdict": "UNABLE_TO_VERIFY", "display_verdict": "UNABLE_TO_VERIFY", "score": 0, "confidence": "low",
+ "scope_mode": "metadata-only", "scope_label": "Only the server's headers were read",
+ "headline": "This link opens a web page, not a file",
+ "reason_codes": ["LINK_IS_WEB_PAGE"]}

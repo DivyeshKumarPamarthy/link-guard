@@ -1,0 +1,4 @@
+{"status": "completed", "verdict": "UNABLE_TO_VERIFY", "display_verdict": "UNABLE_TO_VERIFY", "score": 0, "confidence": "low",
+ "scope_mode": "none", "scope_label": "Nothing was read",
+ "headline": "The link redirects in a loop",
+ "reason_codes": ["REDIR_CROSS_DOMAIN", "REDIR_LOOP"]}

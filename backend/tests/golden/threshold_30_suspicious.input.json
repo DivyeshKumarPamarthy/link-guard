@@ -1,0 +1,6 @@
+{
+  "findings": [
+    {"code": "TYPE_POLYGLOT", "evidence": {"detected_label": "PDF document", "second_label": "ZIP archive", "offset": 512}}
+  ],
+  "read": {"bytes_read": 2048, "total_size": 2048, "range_supported": true, "ended": "complete"}
+}

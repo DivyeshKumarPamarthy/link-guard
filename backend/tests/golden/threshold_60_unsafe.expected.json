@@ -1,0 +1,11 @@
+{
+  "status": "completed",
+  "verdict": "UNSAFE",
+  "display_verdict": "UNSAFE",
+  "score": 60,
+  "confidence": "high",
+  "scope_mode": "full",
+  "scope_label": "Whole file checked (4 KB)",
+  "headline": "Suspicious: the name hides a .exe file behind .pdf",
+  "reason_codes": ["EXT_DOUBLE", "REDIR_DOWNGRADE", "TYPE_CONTENT_TYPE_MISMATCH"]
+}

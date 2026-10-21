@@ -1,0 +1,2 @@
+{"findings": [{"code": "FETCH_UNEXPECTED_ENCODING", "evidence": {"encoding": "gzip"}}],
+ "read": {"bytes_read": 3000, "total_size": 3000, "range_supported": false, "ended": "complete"}}

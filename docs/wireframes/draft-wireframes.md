@@ -100,7 +100,7 @@ Where the link went                                        ← numbered list
 
 - Same layout for all four verdicts; only the band (colour, icon, word) and headline change.
 - "No issues in the checked part" always states the scope in its headline
-  ("No issues found in the checked part (first 5 MB of 200 MB)").
+  ("No issues found in the checked part (First 5 MB of 200 MB)").
 - Unknown reason codes render as a generic card: code + message.
 - Long URLs are middle-truncated with an expand control; control/bidi characters are shown
   escaped (U+202E is displayed as the six visible characters backslash, u, 2, 0, 2, E).

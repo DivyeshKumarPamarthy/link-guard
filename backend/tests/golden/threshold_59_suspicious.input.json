@@ -1,0 +1,8 @@
+{
+  "findings": [
+    {"code": "TYPE_CONTENT_TYPE_MISMATCH", "evidence": {"content_type": "application/pdf", "detected_label": "Windows executable"}},
+    {"code": "EXT_DOUBLE", "evidence": {"decoy_ext": "pdf", "real_ext": "exe"}}
+  ],
+  "weight_overrides": {"EXT_DOUBLE": 49},
+  "read": {"bytes_read": 4096, "total_size": 4096, "range_supported": true, "ended": "complete"}
+}

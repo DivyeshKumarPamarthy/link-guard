@@ -1,0 +1,4 @@
+{"status": "completed", "verdict": "SAFE", "display_verdict": "NO_ISSUES_IN_CHECKED_PART", "score": 0, "confidence": "low",
+ "scope_mode": "partial", "scope_label": "3 KB read, but sent compressed",
+ "headline": "No issues found in the checked part (3 KB read, but sent compressed)",
+ "reason_codes": ["FETCH_UNEXPECTED_ENCODING"]}

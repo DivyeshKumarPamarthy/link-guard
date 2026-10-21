@@ -1,0 +1,5 @@
+{"findings": [
+   {"code": "TYPE_MISMATCH_OTHER", "evidence": {"claimed_ext": "pdf", "detected_label": "Windows executable"}},
+   {"code": "EXT_RISKY", "evidence": {"ext": "exe"}},
+   {"code": "EXT_DOUBLE", "evidence": {"decoy_ext": "pdf", "real_ext": "exe"}}],
+ "read": {"bytes_read": 4096, "total_size": 4096, "range_supported": false, "ended": "complete"}}

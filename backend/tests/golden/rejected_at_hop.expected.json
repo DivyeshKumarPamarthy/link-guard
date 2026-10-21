@@ -1,0 +1,4 @@
+{"status": "rejected", "verdict": null, "display_verdict": "REJECTED", "score": null, "confidence": null,
+ "scope_mode": "none", "scope_label": "Nothing was read",
+ "headline": "Not scanned: the link redirects into a private network",
+ "reason_codes": ["REDIR_DOWNGRADE", "SSRF_BLOCKED_AT_HOP"]}

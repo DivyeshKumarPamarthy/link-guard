@@ -1,0 +1,2 @@
+{"findings": [{"code": "SSRF_BLOCKED_AT_HOP", "evidence": {"hop": 2}}, {"code": "REDIR_DOWNGRADE", "evidence": {"hop": 1}}],
+ "read": {}}

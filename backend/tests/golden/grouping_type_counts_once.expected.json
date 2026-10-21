@@ -1,0 +1,4 @@
+{"status": "completed", "verdict": "SUSPICIOUS", "display_verdict": "SUSPICIOUS", "score": 40, "confidence": "high",
+ "scope_mode": "full", "scope_label": "Whole file checked (4 KB)",
+ "headline": "Suspicious: the name hides a .exe file behind .pdf",
+ "reason_codes": ["EXT_DOUBLE", "EXT_RISKY", "TYPE_MISMATCH_OTHER"]}

@@ -62,6 +62,10 @@ class Settings(BaseSettings):
     text_sample_bytes: int = Field(4096, gt=0)
     text_min_printable_ratio: float = Field(0.95, gt=0, le=1)
 
+    # Verdict thresholds (spec §9: 30 is SUSPICIOUS, 60 is UNSAFE; both inclusive)
+    suspicious_score: int = Field(30, gt=0, le=100)
+    unsafe_score: int = Field(60, gt=0, le=100)
+
     # test / demo profiles only (decision D2)
     static_hosts: Annotated[dict[str, str], NoDecode] = {}
     ssrf_exempt: Annotated[tuple[tuple[str, int], ...], NoDecode] = ()
@@ -124,6 +128,8 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def _guard_profile(self) -> "Settings":
         """Refuse demo-only exemptions outside test/demo, so they can never weaken SSRF checks."""
+        if self.suspicious_score >= self.unsafe_score:
+            raise ValueError("LG_SUSPICIOUS_SCORE must be below LG_UNSAFE_SCORE")
         if self.profile in EXEMPTION_PROFILES:
             return self
         present = [

@@ -1,0 +1,2 @@
+{"findings": [{"code": "REDIR_LOOP"}, {"code": "REDIR_CROSS_DOMAIN", "evidence": {"final_host": "b.demo.test"}}],
+ "read": {}}

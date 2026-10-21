@@ -1,0 +1,2 @@
+{"findings": [{"code": "SCAN_PARTIAL", "evidence": {"scope_label": "First 5 MB of 200 MB"}}],
+ "read": {"bytes_read": 5242880, "total_size": 209715200, "range_supported": false, "ended": "cap"}}

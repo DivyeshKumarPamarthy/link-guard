@@ -1,0 +1,2 @@
+{"findings": [{"code": "LINK_IS_WEB_PAGE"}],
+ "read": {"bytes_read": 1500, "total_size": 1500, "range_supported": true, "ended": "complete"}}
