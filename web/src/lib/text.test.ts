@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { hexPairs, showInvisible } from './text.ts'
+import { hexPairs, middleTruncate, showInvisible } from './text.ts'
 
 const RLO = String.fromCodePoint(0x202e)
 const ZWSP = String.fromCodePoint(0x200b)
@@ -17,6 +17,19 @@ test('shows zero-width and control characters as escapes', () => {
 
 test('leaves ordinary text, including non-Latin letters, unchanged', () => {
   expect(showInvisible('фильм.mp4 — 映画')).toBe('фильм.mp4 — 映画')
+})
+
+test('middle-truncates long text so both ends stay visible', () => {
+  const url = 'https://files.example/very/long/path/to/movie.mp4'
+  const short = middleTruncate(url, 20)
+  expect([...short]).toHaveLength(20)
+  expect(short.startsWith('https://fi')).toBe(true)
+  expect(short.endsWith('movie.mp4')).toBe(true)
+  expect(short).toContain('…')
+})
+
+test('leaves text at or under the limit unchanged', () => {
+  expect(middleTruncate('short.example/abc', 17)).toBe('short.example/abc')
 })
 
 test('splits hex into byte pairs', () => {

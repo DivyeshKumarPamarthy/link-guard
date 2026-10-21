@@ -44,3 +44,6 @@ Escalated, answered by Divyesh (2026-10-21):
 
 - SSRF rows at a redirect hop and the `tests/demo_server.py` layout approved; D45–D50 upgraded to decided
 - Changes: hosts compared in ASCII form (D49); `REDIR_BAD_TARGET` message reworded (D51); new rows for `//127.0.0.1/`, an over-long `Location` and two different `Location` headers
+## 2026-10-19
+
+### T1.6 · task/T1.6 · ready for review

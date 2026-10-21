@@ -40,7 +40,7 @@ shows every state side by side in both themes.
 ## Known limitations
 
 - Wireframes (team task) are not in `docs/wireframes/` yet, so layouts follow the guide's ASCII sketches only.
-- Middle-truncation of long URLs and "Copy URL" come with the report page (T1.6/T2.6).
+- Middle-truncation of long URLs and "Copy URL" arrived with the screens in T1.6 (`docs/modules/web-app.md`).
 
 ## Likely viva questions (and your short answers)
 

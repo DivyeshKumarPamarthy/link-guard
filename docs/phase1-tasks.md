@@ -63,7 +63,7 @@ gate: G0 passed 2026-10-19
 - [x] **T1.5 Detection on fixtures (B).** Signature table and `detect_type` for spec §7; claimed-name extraction incl. RFC 5987; extension chain analysis. Works on byte fixtures, no network.
   Accept: every format detected from inline byte fixtures in `backend/tests/unit/test_detect_type.py` (not generated samples; T2.6 checks those); Content-Disposition variants parsed safely.
   mode: auto · verify: `cd backend && uv run pytest tests/unit/test_detect_type.py -q` · depends: T0.5
-- [ ] **T1.6 Web skeleton on the mock (C).** Home, submit, polling, report rendering from the mock, error states, all using the Tailwind tokens and layouts from the style guide.
+- [x] **T1.6 Web skeleton on the mock (C).** Home, submit, polling, report rendering from the mock, error states, all using the Tailwind tokens and layouts from the style guide.
   Accept: vitest for polling and the error states; renders a hostile filename `<img src=x onerror=alert(1)>` as text.
   mode: auto · verify: `cd web && npm run lint && npm run typecheck && npm test` · depends: T0.7, T0.10
 

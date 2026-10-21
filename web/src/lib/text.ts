@@ -22,6 +22,18 @@ export function showInvisible(text: string): string {
   return out
 }
 
+/**
+ * Shorten long text in the middle ("https://files.exa…/movie.mp4") so both the site and the
+ * file name stay visible. Text up to `max` characters is returned unchanged.
+ */
+export function middleTruncate(text: string, max: number): string {
+  const chars = [...text]
+  if (chars.length <= max) return text
+  const keep = max - 1
+  const head = Math.ceil(keep / 2)
+  return chars.slice(0, head).join('') + '…' + chars.slice(chars.length - (keep - head)).join('')
+}
+
 /** Split lowercase hex ("4d5a90") into byte pairs (["4d", "5a", "90"]). */
 export function hexPairs(hex: string): string[] {
   return hex.match(/.{2}/g) ?? []
