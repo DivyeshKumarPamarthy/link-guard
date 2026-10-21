@@ -1,0 +1,11 @@
+{
+  "status": "completed",
+  "verdict": "SAFE",
+  "display_verdict": "SAFE",
+  "score": 0,
+  "confidence": "high",
+  "scope_mode": "full",
+  "scope_label": "Whole file checked (47 KB)",
+  "headline": "No problems found in the whole file",
+  "reason_codes": []
+}

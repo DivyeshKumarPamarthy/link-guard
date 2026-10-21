@@ -1,0 +1,4 @@
+{"status": "completed", "verdict": "UNABLE_TO_VERIFY", "display_verdict": "UNABLE_TO_VERIFY", "score": 0, "confidence": "low",
+ "scope_mode": "full", "scope_label": "Whole file checked (1 KB)",
+ "headline": "This link opens a web page, not a file",
+ "reason_codes": ["LINK_IS_WEB_PAGE"]}

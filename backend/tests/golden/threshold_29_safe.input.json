@@ -1,0 +1,7 @@
+{
+  "findings": [
+    {"code": "TYPE_MISMATCH_OTHER", "evidence": {"claimed_ext": "jpg", "detected_label": "PNG image"}}
+  ],
+  "weight_overrides": {"TYPE_MISMATCH_OTHER": 29},
+  "read": {"bytes_read": 1000, "total_size": 1000, "range_supported": true, "ended": "complete"}
+}

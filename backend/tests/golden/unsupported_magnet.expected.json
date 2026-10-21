@@ -1,0 +1,4 @@
+{"status": "unsupported", "verdict": null, "display_verdict": "UNSUPPORTED", "score": null, "confidence": null,
+ "scope_mode": "none", "scope_label": "Nothing was read",
+ "headline": "Magnet links aren't supported yet",
+ "reason_codes": ["LINK_TYPE_UNSUPPORTED"]}

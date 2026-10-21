@@ -1,0 +1,11 @@
+{
+  "status": "completed",
+  "verdict": "SUSPICIOUS",
+  "display_verdict": "SUSPICIOUS",
+  "score": 30,
+  "confidence": "high",
+  "scope_mode": "full",
+  "scope_label": "Whole file checked (2 KB)",
+  "headline": "Suspicious: the file is two formats at once",
+  "reason_codes": ["TYPE_POLYGLOT"]
+}

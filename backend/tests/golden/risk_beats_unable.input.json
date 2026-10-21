@@ -1,0 +1,2 @@
+{"findings": [{"code": "FETCH_TIMEOUT"}, {"code": "EXT_DOUBLE", "evidence": {"decoy_ext": "pdf", "real_ext": "exe"}}],
+ "read": {"bytes_read": 4096, "total_size": null, "range_supported": false, "ended": "timeout"}}

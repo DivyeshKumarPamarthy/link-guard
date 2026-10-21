@@ -5,7 +5,7 @@ import logging
 import pytest
 from pydantic import ValidationError
 
-from app.core.config import Settings, log_active_exemptions
+from app.core.config import Settings, log_active_exemptions, log_active_thresholds
 
 DEMO_ENV = {
     "LG_STATIC_HOSTS": "a.demo.test=127.0.0.1,b.demo.test=127.0.0.1,c.demo.test=127.0.0.1",
@@ -167,3 +167,41 @@ def test_no_warnings_without_exemptions(caplog: pytest.LogCaptureFixture) -> Non
     with caplog.at_level(logging.WARNING):
         log_active_exemptions(Settings())
     assert caplog.records == []
+
+
+# --- verdict thresholds (spec §9, D62) ----------------------------------------------------------
+
+
+def test_threshold_defaults_are_the_spec_values() -> None:
+    """Spec §9 fixes them: 30 is SUSPICIOUS, 60 is UNSAFE. Changing a default must fail here
+    (and goes to Divyesh under docs/decision-policy.md)."""
+    settings = Settings()
+    assert (settings.suspicious_score, settings.unsafe_score) == (30, 60)
+
+
+@pytest.mark.parametrize(("suspicious", "unsafe"), [("60", "60"), ("70", "60")])
+def test_suspicious_must_start_below_unsafe(
+    monkeypatch: pytest.MonkeyPatch, suspicious: str, unsafe: str
+) -> None:
+    monkeypatch.setenv("LG_SUSPICIOUS_SCORE", suspicious)
+    monkeypatch.setenv("LG_UNSAFE_SCORE", unsafe)
+    with pytest.raises(ValidationError, match="LG_SUSPICIOUS_SCORE must be below"):
+        Settings()
+
+
+def test_thresholds_are_logged_at_startup(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.INFO):
+        log_active_thresholds(Settings())
+    assert [r.getMessage() for r in caplog.records] == [
+        "Verdict thresholds: SUSPICIOUS at score >= 30, UNSAFE at score >= 60"
+    ]
+
+
+def test_the_app_logs_thresholds_on_startup(caplog: pytest.LogCaptureFixture) -> None:
+    from app.main import create_app
+
+    with caplog.at_level(logging.INFO):
+        create_app(Settings())
+    assert any(
+        "Verdict thresholds: SUSPICIOUS at score >= 30" in r.getMessage() for r in caplog.records
+    )

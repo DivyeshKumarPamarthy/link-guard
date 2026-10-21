@@ -1,0 +1,3 @@
+{"findings": [{"code": "TYPE_MISMATCH_EXEC", "evidence": {"claimed_ext": "mp4", "detected": "pe-executable", "detected_label": "Windows executable"}}],
+ "weight_overrides": {"TYPE_MISMATCH_EXEC": 5},
+ "read": {"bytes_read": 48213, "total_size": 48213, "range_supported": true, "ended": "complete"}}

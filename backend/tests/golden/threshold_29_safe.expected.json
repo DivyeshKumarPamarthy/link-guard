@@ -1,0 +1,11 @@
+{
+  "status": "completed",
+  "verdict": "SAFE",
+  "display_verdict": "SAFE",
+  "score": 29,
+  "confidence": "high",
+  "scope_mode": "full",
+  "scope_label": "Whole file checked (1000 bytes)",
+  "headline": "The file named .jpg is actually a PNG image",
+  "reason_codes": ["TYPE_MISMATCH_OTHER"]
+}

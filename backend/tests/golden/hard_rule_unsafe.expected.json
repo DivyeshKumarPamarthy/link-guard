@@ -1,0 +1,4 @@
+{"status": "completed", "verdict": "UNSAFE", "display_verdict": "UNSAFE", "score": 5, "confidence": "high",
+ "scope_mode": "full", "scope_label": "Whole file checked (47 KB)",
+ "headline": "Blocked: file named .mp4 is actually a Windows executable",
+ "reason_codes": ["TYPE_MISMATCH_EXEC"]}

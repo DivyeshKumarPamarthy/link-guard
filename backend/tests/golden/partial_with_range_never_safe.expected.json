@@ -1,0 +1,4 @@
+{"status": "completed", "verdict": "SAFE", "display_verdict": "NO_ISSUES_IN_CHECKED_PART", "score": 0, "confidence": "medium",
+ "scope_mode": "partial", "scope_label": "First 5 MB of 200 MB",
+ "headline": "No issues found in the checked part (First 5 MB of 200 MB)",
+ "reason_codes": ["SCAN_PARTIAL"]}
