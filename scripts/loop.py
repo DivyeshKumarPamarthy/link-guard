@@ -28,7 +28,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
-MIN_CLAUDE_VERSION = (2, 1, 259)  # first version with --permission-prompts
+MIN_CLAUDE_VERSION = (2, 1, 295)  # verified with --tools, --strict-mcp-config, --json-schema
 MAX_CORRECTIONS = 3  # fix rounds + review rounds, per task
 OUTPUT_TAIL_LINES = 200
 VERIFY_TIMEOUT_S = 30 * 60
@@ -38,8 +38,16 @@ IMPLEMENT_TOOLS = (
     "Read,Edit,Write,Grep,Glob,Bash(make *),Bash(uv *),Bash(npm *),Bash(npx *),"
     "Bash(git status),Bash(git diff *)"
 )
-REVIEW_TOOLS = "Read,Grep,Glob,Bash(git diff *)"
-MENTOR_TOOLS = "Read,Grep,Glob"
+# Read-only sessions (reviewer, mentor) get ONLY these built-in tools (--tools), and the
+# write/shell/web tools are denied outright: --allowedTools alone did not stop the mentor
+# from running read-only shell commands, which Claude Code auto-approves.
+READ_ONLY_TOOLS = "Read,Grep,Glob"
+DENIED_FOR_READ_ONLY = "Bash,Edit,Write,NotebookEdit,WebFetch,WebSearch"
+REVIEW_TOOLS = READ_ONLY_TOOLS  # the diff arrives on standard input
+MENTOR_TOOLS = READ_ONLY_TOOLS
+DEFAULT_BUDGET_USD = 8.0
+# Text Claude Code returns (as a "successful" result) when the account's usage is used up.
+USAGE_LIMIT = re.compile(r"\b(session|usage) limit\b", re.IGNORECASE)
 MENTOR_MODEL = "opus"
 
 
@@ -370,6 +378,8 @@ class Outcome:
     message: str
     corrections: int = 0
     cost_usd: float = 0.0
+    escalated: bool = False  # the mentor sent questions to the human: the run stops
+    usage_limit: bool = False  # Claude's usage limit was hit: every later call would fail
 
 
 @dataclass
@@ -379,6 +389,7 @@ class ClaudeReply:
     session_id: str | None
     cost_usd: float
     error: str = ""
+    usage_limit: bool = False
 
 
 @dataclass
@@ -484,6 +495,7 @@ class Loop:
         resume: str | None = None,
         stdin: str | None = None,
         model: str | None = None,
+        read_only: bool = False,
     ) -> ClaudeReply:
         if budget <= 0:
             return ClaudeReply(False, {}, resume, 0.0, "the task's budget is used up")
@@ -503,7 +515,10 @@ class Loop:
             "json",
             "--json-schema",
             schema.read_text(),
+            "--strict-mcp-config",  # no MCP servers (they could write to outside services)
         ]
+        if read_only:
+            args += ["--tools", READ_ONLY_TOOLS, "--disallowedTools", DENIED_FOR_READ_ONLY]
         if resume:
             args += ["--resume", resume]
         if model:
@@ -528,9 +543,27 @@ class Loop:
             except json.JSONDecodeError:
                 data = None
         if payload.get("is_error") or not isinstance(data, dict):
-            reason = payload.get("subtype") or payload.get("result") or "no structured output"
-            return ClaudeReply(False, {}, session, cost, f"claude did not finish: {reason}")
+            return self.failed_reply(payload, session, cost)
         return ClaudeReply(True, data, session, cost)
+
+    @staticmethod
+    def failed_reply(payload: dict[str, object], session: str | None, cost: float) -> ClaudeReply:
+        """Name the real reason a call gave no JSON answer. Claude Code reports a usage limit
+        as subtype "success" with the limit message as its text, which the first version of
+        this function printed as "claude did not finish: success" (T2.2, 2026-10-19)."""
+        text = one_line(str(payload.get("result") or ""))[:200]
+        subtype = str(payload.get("subtype") or "")
+        if USAGE_LIMIT.search(text):
+            return ClaudeReply(
+                False, {}, session, cost, f"Claude usage limit reached: {text}", usage_limit=True
+            )
+        if payload.get("is_error") or subtype != "success":
+            return ClaudeReply(
+                False, {}, session, cost, f"claude did not finish: {subtype or text}"
+            )
+        return ClaudeReply(
+            False, {}, session, cost, f"claude ended without the required JSON answer: {text}"
+        )
 
     def prompt(self, name: str) -> str:
         return (self.paths.prompts / f"{name}.md").read_text()
@@ -624,6 +657,7 @@ class Loop:
             f"WHERE THE IMPLEMENTER STOPPED: {summary}\n\nQUESTIONS:\n{numbered}",
             tools=MENTOR_TOOLS,
             mode="dontAsk",
+            read_only=True,
             schema=self.paths.mentor_schema,
             budget=budget,
             model=MENTOR_MODEL,
@@ -676,7 +710,17 @@ class Loop:
 
         while True:
             if not reply.ok:
-                return self.park(task, Outcome(task.id, "blocked", reply.error, corrections, spent))
+                return self.park(
+                    task,
+                    Outcome(
+                        task.id,
+                        "blocked",
+                        reply.error,
+                        corrections,
+                        spent,
+                        usage_limit=reply.usage_limit,
+                    ),
+                )
             status = str(reply.data.get("status", ""))
             summary = str(reply.data.get("summary", "")).strip() or "(no summary)"
             feedback: str | None = None
@@ -699,6 +743,7 @@ class Loop:
                             f"{summary} ({note}questions in docs/loop/questions.md)",
                             corrections,
                             spent,
+                            escalated=escalated > 0,
                         ),
                     )
                 for answer in answers:
@@ -745,6 +790,7 @@ class Loop:
                         review_prompt,
                         tools=REVIEW_TOOLS,
                         mode="dontAsk",
+                        read_only=True,
                         schema=self.paths.review_schema,
                         budget=remaining(),
                         stdin=diff,
@@ -759,6 +805,7 @@ class Loop:
                                 f"review failed: {review.error}",
                                 corrections,
                                 spent,
+                                usage_limit=review.usage_limit,
                             ),
                         )
                     if review.data.get("verdict") == "approve":
@@ -827,6 +874,10 @@ class Loop:
     # the whole run ----------------------------------------------------------------------
 
     def run(self, max_tasks: int, only: str | None) -> int:
+        """Run up to `max_tasks` tasks. A task that is parked (blocked, rejected) does not end
+        the run: its branch stays, so the tasks that depend on it are skipped and the next
+        independent task runs. The run stops only for an escalation (questions for the
+        human), Claude's usage limit, a gate, nothing left to run, or --max-tasks."""
         if not self.dry_run:
             problem = self.check_claude_version()
             if problem:
@@ -838,12 +889,13 @@ class Loop:
             return 2
 
         simulated_branches: set[str] = set()  # dry run: tasks it would have committed
+        parked: list[str] = []
         for _ in range(max_tasks):
             sections = parse_tasks(self.paths.tasks.read_text())
             choice = choose_next(sections, self.open_branches() | simulated_branches, only)
             if isinstance(choice, Stop):
                 self.echo(f"STOP: {choice.message}")
-                return 0
+                return self.finish_run(parked)
             task = choice.task
             if self.dry_run:
                 self.echo(
@@ -860,35 +912,71 @@ class Loop:
                 f"--- {task.id}: {outcome.status} after {outcome.corrections} correction "
                 f"round(s), ${outcome.cost_usd:.2f}: {outcome.message}"
             )
-            if outcome.status != "done":
+            if outcome.status == "done":
+                if only:
+                    self.echo(
+                        f"STOP: {task.id} is done on {task_branch(task.id)}. Review and merge it."
+                    )
+                    return 0
+                continue
+            parked.append(task.id)
+            if outcome.escalated:
                 self.echo(
-                    f"STOP: {task.id} is {outcome.status}. Branch {task_branch(task.id)} "
-                    "is left for you; see docs/loop/README.md."
+                    f"STOP: {task.id} has questions for you (escalated by the mentor); "
+                    "see docs/loop/questions.md on its branch."
                 )
-                return 1
+                return self.finish_run(parked)
+            if outcome.usage_limit:
+                self.echo(
+                    f"STOP: Claude's usage limit was reached during {task.id}; run again "
+                    "after it resets. Delete its branch first so the task is redone."
+                )
+                return self.finish_run(parked)
             if only:
-                self.echo(
-                    f"STOP: {task.id} is done on {task_branch(task.id)}. Review and merge it."
-                )
-                return 0
+                self.echo(f"STOP: {task.id} is {outcome.status}; see docs/loop/README.md.")
+                return self.finish_run(parked)
+            self.echo(
+                f"--- {task.id} is parked on {task_branch(task.id)}; continuing with tasks "
+                "that do not depend on it."
+            )
         self.echo(
             f"STOP: reached --max-tasks {max_tasks}. Review and merge the task/* branches; "
             "tasks that depend on them stay blocked until they are merged into main."
         )
-        return 0
+        return self.finish_run(parked)
+
+    def finish_run(self, parked: Sequence[str]) -> int:
+        """Exit code 0 when every task finished, 1 when any was parked (listed once more)."""
+        if not parked:
+            return 0
+        self.echo(
+            "Parked in this run (branches kept, see docs/loop/README.md): "
+            + ", ".join(f"{task_id} on {task_branch(task_id)}" for task_id in parked)
+        )
+        return 1
 
 
-def main(argv: Sequence[str] | None = None) -> int:
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run LinkGuard tasks with headless Claude Code.")
     parser.add_argument("--max-tasks", type=int, default=3, help="stop after N tasks (default 3)")
     parser.add_argument("--task", help="run only this task id, e.g. T1.5")
-    parser.add_argument("--budget", type=float, default=3.0, help="USD per task (default 3)")
+    parser.add_argument(
+        "--budget",
+        type=float,
+        default=DEFAULT_BUDGET_USD,
+        help=f"USD per task (default {DEFAULT_BUDGET_USD:g})",
+    )
     parser.add_argument(
         "--dry-run",
         action="store_true",
         help="print what would happen; no Claude calls, no git changes",
     )
     parser.add_argument("--verbose", action="store_true", help="print every command")
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = build_parser()
     args = parser.parse_args(argv)
     if args.task and not TASK_ID.match(args.task):
         parser.error("--task must look like T1.5")

@@ -6,7 +6,8 @@ and never pushes: you read the diff and the module note, then merge.
 
 ## Before you run it
 
-- Claude Code **2.1.259 or later** (`claude --version`); the loop checks this and stops if older.
+- Claude Code **2.1.295 or later** (`claude --version`; the version verified with `--tools`,
+  `--strict-mcp-config` and `--json-schema`); the loop checks this and stops if older.
 - You are on `main`, the working tree is clean, and `main` is up to date.
 - Every `task/*` branch from an earlier run is merged or deleted (see "Stop messages").
 - Gates you have checked are marked under their heading, e.g. `gate: G0 passed 2026-10-20`.
@@ -17,7 +18,7 @@ and never pushes: you read the diff and the module note, then merge.
 # what would run, without calling Claude or changing anything
 uv run --no-project --python 3.12 python scripts/loop.py --dry-run
 
-# run up to 3 tasks (the default), $3 budget per task (the default)
+# run up to 3 tasks (the default), $8 budget per task (the default)
 uv run --no-project --python 3.12 python scripts/loop.py
 
 # one specific task, with a bigger budget, printing every command
@@ -28,7 +29,7 @@ uv run --no-project --python 3.12 python scripts/loop.py --task T1.5 --budget 5 
 | --- | --- |
 | `--max-tasks N` | Stop after N tasks (default 3) |
 | `--task ID` | Run only this task (must be `auto`, unticked, dependencies ticked on `main`) |
-| `--budget USD` | Spending limit per task across all its Claude calls (default 3) |
+| `--budget USD` | Spending limit per task across all its Claude calls (default 8) |
 | `--dry-run` | Print the tasks that would run; no Claude calls, no git changes (it still reads `git status` and the branch list) |
 | `--verbose` | Print every command the loop runs |
 
@@ -48,7 +49,7 @@ uv run --no-project --python 3.12 python scripts/loop.py --task T1.5 --budget 5 
    `.loop/protected.txt`. Any hit rejects the task.
 6. **Verify:** the loop runs the task's `verify:` command itself. On failure it resumes the same
    Claude session with `.loop/prompts/fix.md` and the last 200 lines of output.
-7. **Review:** a separate, read-only `claude -p` session gets the diff and
+7. **Review:** a separate, read-only `claude -p` session (only Read, Grep, Glob) gets the diff and
    `.loop/prompts/review.md`. "changes_needed" sends the problems back to the implementing session.
 8. Fix, review and mentor rounds share one limit: **3 correction rounds**, then the task is blocked.
 9. **Approve:** the loop ticks the box, appends to `docs/loop/log.md` and
@@ -59,20 +60,27 @@ uv run --no-project --python 3.12 python scripts/loop.py --task T1.5 --budget 5 
 
 Every run ends with a line starting `STOP:`.
 
+A parked task (blocked or rejected) does **not** end the run: its branch is kept, the tasks
+that depend on it are skipped, and the next independent task runs. The run stops only for an
+escalation (questions for you), Claude's usage limit, a gate, nothing left to run, or
+`--max-tasks` (parked tasks count). The last line lists every task parked in the run; the exit
+code is 1 when anything was parked.
+
 | Message | Meaning | What to do |
 | --- | --- | --- |
 | `The working tree is not clean` | Uncommitted changes | Commit or stash them |
 | `You are on '<branch>'. Switch to main first.` | Not on main | `git switch main` |
-| `Claude Code X is too old` | Version below 2.1.259 | Update Claude Code |
+| `Claude Code X is too old` | Version below 2.1.295 | Update Claude Code |
 | `Gate G<n> is not passed (...)` | Tasks after a gated section are waiting | Check the gate's criteria, then add `gate: G<n> passed <date>` under that heading on `main` |
 | `T<x> needs T<y>, which is committed on unmerged branch task/T<y>` | A dependency is done but only on its branch; boxes are ticked on branches, so it does not count yet | Review and merge `task/T<y>`, then run again |
 | `T<x> is committed on unmerged branch task/T<x>` | That task already has a branch | Merge it, or delete the branch to redo the task |
 | `T<x> needs T<y>, a pair/human task` | You have to do T<y> yourself | Do it, tick it on `main`, run again |
 | `No unticked auto tasks left.` | Nothing for the loop to do | |
 | `reached --max-tasks N` | Normal end of a run | Review and merge the new `task/*` branches |
-| `T<x> is needs_human` | The mentor escalated at least one question (or failed) | See "Answering questions" |
-| `T<x> is blocked` | Unfixable after 3 rounds, budget used up, or Claude failed | Read the branch's last log row and the WIP commit |
-| `T<x> is rejected` | The branch touched a protected path | Inspect the branch; delete it and run again, or do the task as `pair` |
+| `T<x> has questions for you` | The mentor escalated at least one question (or failed) | See "Answering questions" |
+| `Claude's usage limit was reached during T<x>` | Your Claude account's session or usage limit; every later call would fail | Wait for the reset, delete `task/T<x>`, run again |
+| `T<x> is parked on task/T<x>; continuing…` (not a stop) | Blocked (3 rounds, budget, no JSON answer) or rejected (protected path) | After the run: read the branch's last log row and WIP commit |
+| `Parked in this run: …` | Summary line after any stop | Review each listed branch |
 
 A stopped task's branch is kept with everything committed on it (`WIP <ID> (<status>): …`),
 so `main` stays clean. Its log row and questions are in that commit.
@@ -126,6 +134,16 @@ GitHub's merge button reports a conflict in these files, merge the branch locall
 - The loop runs the verify command itself; Claude's own claim of success is not trusted.
 - `--permission-prompts none`: anything outside the allowed tools is refused without asking.
 - No merge, no push, no `git commit` by Claude (the tool list does not allow it).
+- **Read-only sessions are enforced, not requested:** the reviewer and the mentor run with
+  `--tools Read,Grep,Glob` (no other built-in tool exists for them) and
+  `--disallowedTools Bash,Edit,Write,NotebookEdit,WebFetch,WebSearch`. `--allowedTools` alone
+  was not enough: Claude Code auto-approves read-only shell commands, and the T2.2 mentor ran
+  `ls`/`grep`/`cat` that way (2026-10-19).
+- **No MCP servers** in any loop session (`--strict-mcp-config`): connected services such as
+  Notion or Drive could otherwise be written to.
+- **A reply without the JSON answer** names its cause: "Claude usage limit reached: …" (stops
+  the run) or "claude ended without the required JSON answer: …" (parks the task). T2.2's
+  "claude did not finish: success" (2026-10-19) was the account's session limit.
 - Budget per task via `--max-budget-usd`, passing what is left of `--budget` to each call.
   This is a **soft** limit: Claude Code checks it between its own steps, so one call can go
   over (the first T1.5 run spent $4.82 of $3). The loop makes no new call once the budget is used.
