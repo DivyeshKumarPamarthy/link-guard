@@ -234,6 +234,10 @@ transport and no fallback were needed. Code: `backend/app/engine/fetcher/pinned.
 | `https://example.com:22/`, `:6379`, `:5432` | rejected / URL_PORT_BLOCKED |
 | `file:///etc/passwd`, `gopher://x/`, `data:text/plain,hi`, `javascript:alert(1)` | rejected / URL_SCHEME_UNSUPPORTED |
 | public demo URL that 302s to `http://127.0.0.1/` | rejected / SSRF_BLOCKED_AT_HOP (chain shown up to that hop) |
+| redirect with `Location: //127.0.0.1/` (scheme-relative) | rejected / SSRF_BLOCKED_AT_HOP {hop: 1} (T1.4) |
+| redirect to `169.254.169.254`, `[::1]`, `0x7f.1`, a name resolving to loopback, or a name with one private record | rejected / SSRF_BLOCKED_AT_HOP (T1.4) |
+| redirect with a `Location` longer than `LG_MAX_URL_LENGTH` | rejected / REDIR_BAD_TARGET (D38, D51) |
+| redirect with two different `Location` headers | rejected / REDIR_BAD_TARGET (D51) |
 | Rebinding: resolver answers public then private | rejected or fetched from the FIRST validated IP only; resolver called exactly once per hop (assert; T1.2 + T1.3) |
 | Host with one public and one private A record | rejected / URL_PRIVATE_ADDRESS |
 | Exempt host `a.demo.test:8081` but on port 8082 | rejected (exemption is exact host:port) |
@@ -263,7 +267,7 @@ Add every newly discovered bypass as a row.
 - `link_type = shortened` when the chain has ≥ 1 redirect to a different hostname (exact, case-insensitive comparison after normalization); otherwise `http`. The same rule triggers `REDIR_CROSS_DOMAIN`. No shortener lists.
 - Web page: `Content-Type` `text/html` or `application/xhtml+xml` without `Content-Disposition: attachment` → stop reading, `LINK_IS_WEB_PAGE`, scope `metadata-only`. Also when the body is sniffed as HTML (`<!doctype html`, `<html` in the first 1 KB after whitespace/BOM) regardless of headers → `LINK_IS_WEB_PAGE`, scope as read.
 - Cloud-share hint (P1): if final host is a known share host (Drive, Dropbox, OneDrive, Mega) and it is a web page, add info reason `LINK_CLOUD_SHARE_PAGE` with a hint about direct-download links. Never scrape the page.
-- Redirect ending at `magnet:`, `ftp:`, `intent:` → unsupported. Ending at any other non-HTTP(S) scheme → rejected `REDIR_BAD_TARGET`.
+- Redirect ending at `magnet:`, `ftp:`, `intent:`, or an http(s) URL whose path ends in `.torrent` → unsupported, never contacted (D6, D50; one shared `unsupported_link_kind()`). Ending at any other non-HTTP(S) scheme → rejected `REDIR_BAD_TARGET` (D51).
 
 ## 7. Supported formats and detection (M4)
 
@@ -379,7 +383,7 @@ Phase 1 codes and starter weights (hypotheses; tuned in Phase 4 only):
 | URL_SCHEME_UNSUPPORTED | url | – | – | rejected | |
 | URL_INVALID | url | – | – | rejected | new (D38): unparseable, no host, bad port, host ends in a number but is not valid IPv4, `%` in host, longer than `LG_MAX_URL_LENGTH` |
 | SSRF_BLOCKED_AT_HOP | redirect | – | – | rejected | |
-| REDIR_BAD_TARGET | redirect | – | – | rejected | |
+| REDIR_BAD_TARGET | redirect | – | – | rejected | evidence `{reason, detail}` (D51) |
 | LINK_TYPE_UNSUPPORTED | link | – | – | unsupported | |
 
 ## 9. Scoring (M5)

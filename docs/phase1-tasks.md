@@ -57,7 +57,7 @@ gate: G0 passed 2026-10-19
 - [x] **T1.3 Pinned-TLS spike (A). Time-box: 2 days.** Prove a request to the validated IP with SNI + certificate verification against the original hostname, using the 8443 demo listener and the test CA. Record the chosen approach in `docs/decisions.md`; if the fallback is used, record the residual rebinding risk in `docs/limitations.md`.
   Accept: valid cert → 200; wrong-host cert → TLS error; resolver called exactly once.
   mode: pair · verify: `cd backend && uv run pytest tests/unit/test_pinned_tls.py -q` · depends: T1.1, T1.2
-- [ ] **T1.4 Redirect handling (A).** Manual redirects (max 5), relative Location, visited-set loop detection, full re-validation per hop, downgrade flag, hop records, rejected-at-hop with chain so far, non-HTTP targets (unsupported vs rejected per spec §6).
+- [x] **T1.4 Redirect handling (A).** Manual redirects (max 5), relative Location, visited-set loop detection, full re-validation per hop, downgrade flag, hop records, rejected-at-hop with chain so far, non-HTTP targets (unsupported vs rejected per spec §6).
   Accept: remaining SSRF rows pass; unit tests for loop, too-many, downgrade, bad target.
   mode: pair · verify: `cd backend && uv run pytest tests/ssrf tests/unit/test_redirects.py -q` · depends: T1.2, T1.3
 - [x] **T1.5 Detection on fixtures (B).** Signature table and `detect_type` for spec §7; claimed-name extraction incl. RFC 5987; extension chain analysis. Works on byte fixtures, no network.

@@ -25,6 +25,7 @@ class ResolveError(LookupError):
 
     def __init__(self, host: str, code: str = "FETCH_DNS_ERROR") -> None:
         super().__init__(f"no addresses for {host}")
+        self.host = host
         self.code = code
 
 
