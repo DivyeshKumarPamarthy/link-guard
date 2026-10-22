@@ -285,6 +285,16 @@ class VersionTests(unittest.TestCase):
 # --- the loop with fake git and claude -------------------------------------------------
 
 
+class TextOnly:
+    """Claude's reply when a call ends with plain text and no structured JSON answer."""
+
+    def __init__(self, text: str) -> None:
+        self.text = text
+
+
+SESSION_LIMIT = TextOnly("You've hit your session limit · resets 2:40am (Asia/Calcutta)")
+
+
 class FakeRunner:
     """Pretends to be git, sh and claude. Records every call."""
 
@@ -292,7 +302,7 @@ class FakeRunner:
         self,
         *,
         changed: Sequence[str] = ("backend/app/engine/detect/x.py",),
-        implement: Sequence[dict[str, object] | str] = (),
+        implement: Sequence[dict[str, object] | str | TextOnly] = (),
         reviews: Sequence[dict[str, object]] = (),
         mentor: Sequence[dict[str, object] | str] = (),
         verify_codes: Sequence[int] = (),
@@ -327,8 +337,18 @@ class FakeRunner:
     def snapshot(self, cwd: Path) -> dict[Path, str]:
         return {cwd / name: (cwd / name).read_text() for name in self.TRACKED}
 
-    def reply(self, data: dict[str, object] | str) -> Result:
+    def reply(self, data: "dict[str, object] | str | TextOnly") -> Result:
         self.session_counter += 1
+        if isinstance(data, TextOnly):  # a finished call with no JSON answer, only text
+            payload_text = {
+                "type": "result",
+                "subtype": "success",
+                "is_error": False,
+                "session_id": "sess-1",
+                "total_cost_usd": self.cost,
+                "result": data.text,
+            }
+            return Result(0, json.dumps(payload_text))
         if isinstance(data, str):  # raw stdout, e.g. not JSON at all
             return Result(1, data, "boom")
         payload = {
@@ -503,9 +523,12 @@ class RunTaskTests(LoopTestCase):
         schema = json.loads(implement[implement.index("--json-schema") + 1])
         self.assertEqual(schema["required"], ["status", "summary", "files_changed", "questions"])
         self.assertEqual(review[review.index("--permission-mode") + 1], "dontAsk")
-        self.assertEqual(
-            review[review.index("--allowedTools") + 1], "Read,Grep,Glob,Bash(git diff *)"
-        )
+        self.assertEqual(review[review.index("--allowedTools") + 1], "Read,Grep,Glob")
+        self.assertEqual(review[review.index("--tools") + 1], "Read,Grep,Glob")
+        self.assertIn("Bash", review[review.index("--disallowedTools") + 1])
+        self.assertNotIn("--tools", implement)  # the implementer needs make/uv/npm
+        for call in (implement, review):
+            self.assertIn("--strict-mcp-config", call)  # no MCP servers in any loop session
         self.assertEqual(review[review.index("--max-budget-usd") + 1], "2.75")  # budget minus spent
         self.assertIn("diff --git", runner.stdin[runner.calls.index(review)] or "")
 
@@ -737,6 +760,10 @@ class MentorTests(LoopTestCase):
         self.assertEqual(call[call.index("--allowedTools") + 1], "Read,Grep,Glob")
         self.assertEqual(call[call.index("--permission-mode") + 1], "dontAsk")
         self.assertEqual(call[call.index("--model") + 1], "opus")
+        self.assertEqual(call[call.index("--tools") + 1], "Read,Grep,Glob")  # no Bash at all
+        denied = call[call.index("--disallowedTools") + 1].split(",")
+        self.assertTrue({"Bash", "Edit", "Write", "WebFetch"} <= set(denied))
+        self.assertIn("--strict-mcp-config", call)
         self.assertNotIn("--resume", call)
         self.assertIn("1. Name the helper parse_ip or parse_ip_literal?", call[2])
         self.assertIn("TASK: T1.5", call[2])
@@ -811,6 +838,31 @@ class MentorTests(LoopTestCase):
         return runner.committed["task/T1.5"]["questions.md"]
 
 
+class ReplyTests(LoopTestCase):
+    def test_text_without_json_names_the_real_reason(self) -> None:
+        runner = FakeRunner(implement=[TextOnly("I made the changes; tests pass.")])
+        outcome = self.run_one(runner)
+        self.assertEqual(outcome.status, "blocked")
+        self.assertEqual(
+            outcome.message,
+            "claude ended without the required JSON answer: I made the changes; tests pass.",
+        )
+        self.assertFalse(outcome.usage_limit)
+
+    def test_session_limit_in_a_resumed_call_is_recognised(self) -> None:
+        """The exact T2.2 sequence: implement asks, the mentor answers, the resume hits the
+        session limit."""
+        runner = FakeRunner(implement=[ASK, SESSION_LIMIT], mentor=[mentor_reply(False, False)])
+        outcome = self.run_one(runner)
+        self.assertEqual(outcome.status, "blocked")
+        self.assertTrue(outcome.usage_limit)
+        self.assertTrue(outcome.message.startswith("Claude usage limit reached: You've hit"))
+        self.assertNotIn("did not finish: success", outcome.message)
+
+    def test_default_budget_is_8(self) -> None:
+        self.assertEqual(loop.build_parser().parse_args([]).budget, 8.0)
+
+
 class InterruptTests(LoopTestCase):
     def test_ctrl_c_mid_task_parks_the_branch_and_returns_to_main(self) -> None:
         class InterruptedVerify(FakeRunner):
@@ -848,7 +900,7 @@ class RunTests(LoopTestCase):
     def test_refuses_old_claude(self) -> None:
         runner = FakeRunner(version="2.1.200 (Claude Code)")
         self.assertEqual(self.make_loop(runner).run(3, None), 2)
-        self.assertIn("2.1.259 or later", self.output[-1])
+        self.assertIn("2.1.295 or later", self.output[-1])
 
     def test_runs_independent_tasks_then_stops_on_unmerged_dependency(self) -> None:
         runner = FakeRunner(implement=[DONE, DONE], reviews=[APPROVE, APPROVE])
@@ -868,10 +920,53 @@ class RunTests(LoopTestCase):
         self.assertEqual(self.make_loop(runner).run(1, None), 0)
         self.assertIn("reached --max-tasks 1", self.output[-1])
 
-    def test_stops_after_a_failed_task(self) -> None:
-        runner = FakeRunner(implement=["not json"])
+    def test_a_parked_task_does_not_end_the_run(self) -> None:
+        """T1.1 parks; T1.6 depends on it and is skipped; T1.5 is independent and runs."""
+        runner = FakeRunner(implement=["not json", DONE], reviews=[APPROVE])
+        self.assertEqual(self.make_loop(runner).run(3, None), 1)  # 1: something was parked
+        self.assertEqual(
+            runner.commits(),
+            ["WIP T1.1 (blocked): claude exited 1: boom", "T1.5: Signature table and detect_type"],
+        )
+        self.assertTrue(
+            any("continuing with tasks that do not depend on it" in o for o in self.output)
+        )
+        self.assertIn("T1.6 needs T1.1, which is committed on unmerged branch", self.output[-2])
+        self.assertIn("Parked in this run", self.output[-1])
+        self.assertIn("T1.1 on task/T1.1", self.output[-1])
+
+    def test_parked_tasks_count_toward_max_tasks(self) -> None:
+        runner = FakeRunner(implement=["not json", DONE], reviews=[APPROVE])
+        self.assertEqual(self.make_loop(runner).run(1, None), 1)
+        self.assertEqual(len(runner.commits()), 1)
+        self.assertIn("reached --max-tasks 1", self.output[-2])
+
+    def test_an_escalation_stops_the_run(self) -> None:
+        ask: dict[str, object] = {
+            "status": "needs_human",
+            "summary": "a verdict question",
+            "files_changed": [],
+            "questions": ["Change the SUSPICIOUS threshold?"],
+        }
+        runner = FakeRunner(implement=[ask], mentor=[mentor_reply(True)])
         self.assertEqual(self.make_loop(runner).run(3, None), 1)
-        self.assertIn("T1.1 is blocked", self.output[-1])
+        self.assertEqual(len(runner.commits()), 1)  # nothing after the escalation
+        self.assertIn("T1.1 has questions for you", self.output[-2])
+
+    def test_usage_limit_stops_the_run_with_a_clear_message(self) -> None:
+        """What happened to T2.2 on 2026-10-19: the resumed call hit the account's session
+        limit, Claude Code returned that text as a "successful" result, and the loop said
+        "claude did not finish: success" and would have gone on to fail every later task."""
+        runner = FakeRunner(implement=[SESSION_LIMIT, DONE], reviews=[APPROVE])
+        self.assertEqual(self.make_loop(runner).run(3, None), 1)
+        (commit,) = runner.commits()  # nothing ran after the limit
+        self.assertTrue(commit.startswith("WIP T1.1 (blocked): Claude usage limit reached: You"))
+        self.assertIn("usage limit was reached during T1.1", self.output[-2])
+
+    def test_only_mode_stops_after_a_parked_task(self) -> None:
+        runner = FakeRunner(implement=["not json"])
+        self.assertEqual(self.make_loop(runner).run(3, "T1.5"), 1)
+        self.assertIn("T1.5 is blocked", self.output[-2])
 
     def test_dry_run_calls_neither_claude_nor_writing_git(self) -> None:
         runner = FakeRunner()
