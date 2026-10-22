@@ -116,11 +116,18 @@ def next_url(current: Target, location: str) -> str:
 
 
 async def follow_redirects(
-    url: str, settings: Settings, resolver: Resolver, send_hop: SendHop
+    url: str,
+    settings: Settings,
+    resolver: Resolver,
+    send_hop: SendHop,
+    outcome: RedirectOutcome | None = None,
 ) -> RedirectOutcome:
     """Check and contact the URL, then each redirect target in turn (D46 order):
-    too many → unsupported or non-web scheme → loop → full check_target → send."""
-    outcome = RedirectOutcome()
+    too many → unsupported or non-web scheme → loop → full check_target → send.
+
+    A caller may pass the `outcome` to fill: if it cancels this function (the fetcher's
+    total deadline), it still has the chain recorded so far."""
+    outcome = outcome if outcome is not None else RedirectOutcome()
     visited = {urldefrag(url).url}
     current = url
     followed = 0  # redirects followed so far

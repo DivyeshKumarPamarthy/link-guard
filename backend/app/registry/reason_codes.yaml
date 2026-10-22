@@ -184,6 +184,15 @@ codes:
     message: "This link opens a web page, not a downloadable file."
     headline: "This link opens a web page, not a file"
 
+  FETCH_UNSUPPORTED_ENCODING:  # decision D61
+    group: fetch
+    weight: 0
+    severity: info
+    outcome: unable
+    evidence: [encoding]
+    message: "The server sent the file compressed ({encoding}) in a way LinkGuard cannot read, so the file could not be checked."
+    headline: "The file was compressed in a way LinkGuard cannot read"
+
   FETCH_TIMEOUT:
     group: fetch
     weight: 0

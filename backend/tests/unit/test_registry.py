@@ -32,6 +32,7 @@ SPEC_TABLE = {
     "FETCH_UNEXPECTED_ENCODING": ("fetch", 0, "info", "info"),
     "LINK_IS_WEB_PAGE": ("link", 0, "info", "unable"),
     "FETCH_TIMEOUT": ("fetch", 0, "info", "unable"),
+    "FETCH_UNSUPPORTED_ENCODING": ("fetch", 0, "info", "unable"),  # D61
     "FETCH_INTERRUPTED": ("fetch", 0, "info", "unable"),
     "FETCH_EMPTY": ("fetch", 0, "info", "unable"),
     "FETCH_AUTH_REQUIRED": ("fetch", 0, "info", "unable"),

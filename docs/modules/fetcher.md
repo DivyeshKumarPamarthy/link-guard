@@ -4,8 +4,8 @@ Owner: Divyesh (track A, D16) · Reviewer: TBD · Phase: B · Last updated: 2026
 
 This note grows with each fetcher task. **Done so far: T1.2, the target check** (URL
 validation, host normalization, IP literals, resolvers, address classification, demo
-exemption), **T1.3, pinned connections** and **T1.4, redirects** (see the sections below).
-Still to come: the streaming fetch (T2.1).
+exemption), **T1.3, pinned connections**, **T1.4, redirects** and **T2.1, the streaming
+fetch** (see the sections below). The fetcher is complete; T2.4 wires it into real scans.
 
 ## What it does (2–3 sentences, plain language)
 
@@ -118,6 +118,42 @@ Hosts are compared in their ASCII (punycode) form; the Unicode form is only show
 **Hop records (D48):** one per URL that went through the checks; a refused one is listed as
 `blocked` with no status, so the report shows the chain up to where it stopped.
 
+## The streaming fetch (T2.1, `fetch.py`, `response_rules.py`, D52–D61)
+
+**What:** `fetch(url, settings, resolver) -> FetchResult` follows the link (every hop checked,
+pinned) and reads at most `LG_HEAD_FETCH_BYTES` of the final file. Every way it can end is a
+defined result with a reason code; nothing becomes "Safe" because something failed.
+
+**Per hop (D52)**, with one client: HEAD (`Connection: close`); a redirect is followed with
+no GET. Otherwise one GET with `Range: bytes=0-(cap-1)` on a fresh connection, and that
+response is the one trusted. The HEAD's connection is closed because a server that is still
+busy with it would make the GET wait behind it (found in testing). No cookies are kept.
+
+**On the final response**, in this order:
+1. Error statuses (D57): 401/403 → `FETCH_AUTH_REQUIRED`; 429 → one retry after a short
+   `Retry-After` (≤ `LG_MAX_RETRY_AFTER_S`), then `FETCH_RATE_LIMITED`; anything else that
+   is not 2xx → `FETCH_HTTP_ERROR {status}`.
+2. A web page (D53): `text/html` / `application/xhtml+xml` without `attachment` → stop
+   before reading any body byte, add `LINK_IS_WEB_PAGE`, scope metadata-only. **T3.1 must
+   reuse `is_web_page_headers()` and add `LINK_IS_WEB_PAGE` only for the HTML-sniff case,
+   never a second time.**
+3. Range (D54): a 206 with `Content-Range: bytes 0-E/T` confirms Range and gives the total;
+   a 200 means the server ignored Range (we still read only the first cap bytes); a broken
+   206 is `FETCH_HTTP_ERROR {status: 206}`.
+4. Encoding (D56, D61): gzip/deflate are decoded by us, never past the cap
+   (`FETCH_UNEXPECTED_ENCODING`, scope partial); anything else is
+   `FETCH_UNSUPPORTED_ENCODING` and never guessed at.
+5. The body (D55, D58): raw bytes are counted as they arrive (`Content-Length` is never
+   trusted), the response is closed at the cap without draining it, the whole fetch runs under
+   `LG_TOTAL_DEADLINE_S`, and after `LG_MIN_THROUGHPUT_GRACE_S` a server slower than
+   `LG_MIN_THROUGHPUT_BPS` is cut off (`FETCH_TIMEOUT`). Bytes read before a timeout or a
+   reset (`FETCH_INTERRUPTED`) are kept.
+
+**Full or partial (D54):** full only when the whole body is known to have arrived: bytes read
+equal the Content-Length or Content-Range total, or a chunked body ended with its
+terminating chunk. A body read until the connection closed with no length is partial, as are
+the cap, an early end and decoded bodies. `FetchResult.whole_file` holds this rule.
+
 ## How it is tested (test files, acceptance rows it covers)
 
 - `backend/tests/ssrf/test_ssrf_table.py`: every spec §5 row that needs no redirect or fetch,
@@ -145,6 +181,16 @@ Hosts are compared in their ASCII (punycode) form; the Unicode form is only show
   once and the name never reaches the system's DNS; a second host on the same IP gets its
   own certificate check; the shared-client canary; plain HTTP; proxy variables ignored;
   request building (first validated IP, Host header, IPv6 brackets, no SNI for IP literals).
+- `backend/tests/unit/test_fetch.py` (T2.1, `integration`): one test per demo endpoint:
+  small file whole over HTTP and HTTPS (rows 1, 21), wrong-host certificate (22), 200 MB with
+  and without Range stops at exactly 5 MB in seconds with Python memory under 32 MB (2, 13),
+  slow drip and total deadline (14), reset, chunked, gzip (20), empty (19), web page (17),
+  401/403/404/410/500 (15, 16), 429 retry, connection refused, and redirects through the real
+  fetch (8, 10, 11).
+- `backend/tests/unit/test_fetch_helpers.py` (T2.1, no network): Content-Range and
+  Retry-After parsers, the web-page rule, encodings, a decompression bomb (50 MB of zeros
+  stops at the cap), corrupt and undecodable bodies, status mapping, TLS detection in the
+  exception chain, the no-cookies client, and the full-scope rule.
 - Checked by hand once (not a test, tests never use the internet): example.com, python.org
   and github.com load; badssl.com's wrong-host and expired certificates are refused.
 
@@ -183,5 +229,11 @@ Hosts are compared in their ASCII (punycode) form; the Unicode form is only show
   pasted link, with one lookup, before anything is sent.
 - *What if a redirect has two Location headers?* Refused: different clients pick different
   ones, so we could approve one target while a browser follows the other (D51).
+- *How do you stop a 2 GB download or a decompression bomb?* The cap counts bytes actually
+  read, never the Content-Length header, and the decoder never produces more than the cap.
+- *Why is a slow server "Unable to verify" and not "Safe"?* A timeout is missing evidence;
+  missing evidence never means safe (`FETCH_TIMEOUT`, bytes kept, scope partial at best).
+- *Why HEAD and then GET?* HEAD finds redirects cheaply; the GET with Range is the response
+  we trust, because some servers answer HEAD wrongly or not at all.
 - *How do the tests prove no network was used?* The fake resolver records every lookup, and
   the socket guard fails the test on any real DNS call or connect.
