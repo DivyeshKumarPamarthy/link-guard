@@ -92,7 +92,7 @@ gate: G0 passed 2026-10-19
 
 - [ ] **T3.1 Router (A).** Input cleaning, `classify()` pure function, unsupported types, shortened detection, web-page detection (header + sniff), redirect-chain view model; P1: cloud-share hint, homograph flag. Replaces T2.4's pass-through router stub.
   Accept: table-driven tests covering the M3 edge cases in the reference plan.
-  mode: auto · verify: `cd backend && uv run pytest tests/unit/test_router.py tests/unit/test_orchestrator.py -q` · depends: T1.4, T2.1
+  mode: auto · verify: `cd backend && uv run pytest tests/unit/test_router.py tests/unit/test_orchestrator.py -q` · depends: T1.4, T2.1, T2.4
 - [ ] **T3.2 Wire web to real backend (C).** Polling with backoff, REJECTED / UNSUPPORTED / UNABLE / busy screens, 360 px layout, keyboard and focus, dark mode. P1: localStorage recent-scans list.
   Accept: manual checklist in `docs/` passes; vitest for each screen.
   mode: auto · verify: `cd web && npm run lint && npm run typecheck && npm test` · depends: T1.6, T2.4, T2.6
