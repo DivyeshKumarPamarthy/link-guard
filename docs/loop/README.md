@@ -143,7 +143,9 @@ GitHub's merge button reports a conflict in these files, merge the branch locall
   Notion or Drive could otherwise be written to.
 - **A reply without the JSON answer** names its cause: "Claude usage limit reached: …" (stops
   the run) or "claude ended without the required JSON answer: …" (parks the task). T2.2's
-  "claude did not finish: success" (2026-10-19) was the account's session limit.
+  "claude did not finish: success" (2026-10-19) was the account's session limit; on
+  2026-10-23 a weekly limit ("You've hit your weekly limit") was missed by the first pattern and
+  is now recognised too (any "hit your … limit" text).
 - Budget per task via `--max-budget-usd`, passing what is left of `--budget` to each call.
   This is a **soft** limit: Claude Code checks it between its own steps, so one call can go
   over (the first T1.5 run spent $4.82 of $3). The loop makes no new call once the budget is used.

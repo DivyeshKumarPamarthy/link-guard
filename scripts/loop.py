@@ -47,7 +47,12 @@ REVIEW_TOOLS = READ_ONLY_TOOLS  # the diff arrives on standard input
 MENTOR_TOOLS = READ_ONLY_TOOLS
 DEFAULT_BUDGET_USD = 8.0
 # Text Claude Code returns (as a "successful" result) when the account's usage is used up.
-USAGE_LIMIT = re.compile(r"\b(session|usage) limit\b", re.IGNORECASE)
+# Seen so far: "You've hit your session limit · resets …" (2026-10-19) and "You've hit your
+# weekly limit · resets …" (2026-10-23, missed by the first version of this pattern).
+USAGE_LIMIT = re.compile(
+    r"\bhit your [\w-]+ limit\b|\b(session|usage|weekly|daily|monthly|rate) limit\b",
+    re.IGNORECASE,
+)
 MENTOR_MODEL = "opus"
 
 
@@ -559,7 +564,7 @@ class Loop:
             )
         if payload.get("is_error") or subtype != "success":
             return ClaudeReply(
-                False, {}, session, cost, f"claude did not finish: {subtype or text}"
+                False, {}, session, cost, f"claude did not finish: {text or subtype}"
             )
         return ClaudeReply(
             False, {}, session, cost, f"claude ended without the required JSON answer: {text}"

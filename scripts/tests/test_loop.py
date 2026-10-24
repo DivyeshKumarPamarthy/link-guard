@@ -293,6 +293,7 @@ class TextOnly:
 
 
 SESSION_LIMIT = TextOnly("You've hit your session limit · resets 2:40am (Asia/Calcutta)")
+WEEKLY_LIMIT = TextOnly("You've hit your weekly limit · resets 8:30pm (Asia/Calcutta)")
 
 
 class FakeRunner:
@@ -858,6 +859,30 @@ class ReplyTests(LoopTestCase):
         self.assertTrue(outcome.usage_limit)
         self.assertTrue(outcome.message.startswith("Claude usage limit reached: You've hit"))
         self.assertNotIn("did not finish: success", outcome.message)
+
+    def test_weekly_limit_is_recognised(self) -> None:
+        """2026-10-23: the weekly limit text was missed, so the run went on and parked two
+        more tasks at $0 instead of stopping."""
+        runner = FakeRunner(implement=[WEEKLY_LIMIT])
+        outcome = self.run_one(runner)
+        self.assertTrue(outcome.usage_limit)
+        self.assertEqual(
+            outcome.message,
+            "Claude usage limit reached: You've hit your weekly limit · resets 8:30pm "
+            "(Asia/Calcutta)",
+        )
+
+    def test_weekly_limit_stops_the_run(self) -> None:
+        runner = FakeRunner(implement=[WEEKLY_LIMIT, DONE], reviews=[APPROVE])
+        self.assertEqual(self.make_loop(runner).run(3, None), 1)
+        self.assertEqual(len(runner.commits()), 1)  # T1.5 never started
+        self.assertIn("usage limit was reached during T1.1", self.output[-2])
+
+    def test_error_reply_shows_its_text_not_just_the_subtype(self) -> None:
+        payload = {"is_error": True, "subtype": "success", "result": "Something odd happened"}
+        reply = loop.Loop.failed_reply(payload, "sess-1", 0.0)
+        self.assertEqual(reply.error, "claude did not finish: Something odd happened")
+        self.assertFalse(reply.usage_limit)
 
     def test_default_budget_is_8(self) -> None:
         self.assertEqual(loop.build_parser().parse_args([]).budget, 8.0)
