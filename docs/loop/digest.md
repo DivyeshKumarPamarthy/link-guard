@@ -91,3 +91,9 @@ Escalated, answered by Divyesh (2026-10-21):
 ## 2026-10-24
 
 ### T2.2 · task/T2.2 · stopped (blocked): review failed: claude did not finish: error_max_budget_usd
+
+### T2.2 · task/T2.2 · finished by hand (2026-10-24, interactive session)
+
+The parked work passed its verify (206 tests); the loop's review ran out of budget ($8.03).
+Review fixes: the EXT_DOUBLE sets now hold every D71 extension (msi; zip, rar, 7z) with a test,
+and `unknown` detections are skipped explicitly in TYPE_MISMATCH_OTHER (D77).

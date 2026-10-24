@@ -67,13 +67,17 @@ UNDETECTABLE_BINARY_CLAIMS = frozenset(
 # Spec §7 risky extensions outside the format list (EXT_RISKY).
 RISKY_EXTENSIONS = frozenset({"scr", "lnk", "hta", "vbs", "cmd", "jar", "com", "pif"})
 
-# EXT_DOUBLE (D71): a risky last extension hidden behind a document/media/image decoy.
-DOUBLE_REAL_EXTENSIONS = frozenset(EXECUTABLE_CLAIMS) | RISKY_EXTENSIONS | {"js", "ps1", "bat"}
+# EXT_DOUBLE (D71, D77): a risky last extension hidden behind a document/media/image/archive
+# decoy. Both sets contain every D71 extension; the extra ones only add flags.
+DOUBLE_REAL_EXTENSIONS = (
+    frozenset(EXECUTABLE_CLAIMS) | RISKY_EXTENSIONS | {"js", "ps1", "bat", "msi"}
+)
 DOUBLE_DECOY_EXTENSIONS = frozenset(
     {
         "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods", "txt", "csv",
         "jpg", "jpeg", "jpe", "png", "gif", "bmp", "webp", "heic",
         "mp3", "mp4", "m4a", "m4v", "mov", "wav", "avi", "mkv", "wmv",
+        "zip", "rar", "7z",
     }
 )  # fmt: skip
 
@@ -248,7 +252,7 @@ def check_other_mismatch(detection: Detection, ext: str | None) -> list[Finding]
     """
     if ext not in DETECTABLE_CLAIMS or detection.confidence is DetectionConfidence.unconfirmed:
         return []
-    if detection.type == "text":
+    if detection.type in ("text", "unknown"):  # D69: unknown bytes never raise a type code
         return []
     if detection.family is Family.executable and ext not in EXECUTABLE_CLAIMS:
         return []

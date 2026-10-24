@@ -54,8 +54,9 @@ Mismatch checks (T2.2, `mismatch.py`; each one a separate function returning fin
    `TYPE_MISMATCH_TEXT` (not for `text/html`, D9). `check_other_mismatch`: any other wrong
    format or wrong class member (PNG as .jpg, ELF as .exe, JAR as .zip) → `TYPE_MISMATCH_OTHER`,
    never on an unconfirmed detection.
-10. Name checks: `check_double_extension` (risky last, document/media decoy before it:
-    `invoice.pdf.exe`), `check_risky_extension` (`scr lnk hta vbs cmd jar com pif`),
+10. Name checks: `check_double_extension` (risky last, document/media/image/archive decoy
+    before it: `invoice.pdf.exe`, `archive.zip.exe`, `invoice.pdf.msi`; every D71 extension is
+    in the sets, a test checks that, D77), `check_risky_extension` (`scr lnk hta vbs cmd jar com pif`),
     `check_spoofed_name` (any Unicode Cc/Cf character, e.g. U+202E, listed as `U+202E`).
 11. `check_content_type`: the media type (parameters dropped) is in a table row that does not
     hold the detected type → `TYPE_CONTENT_TYPE_MISMATCH`. Missing, generic

@@ -13,6 +13,8 @@ import pytest
 from app.contract.models import DetectionConfidence, Family, NameSource
 from app.core.config import Settings
 from app.engine.detect.mismatch import (
+    DOUBLE_DECOY_EXTENSIONS,
+    DOUBLE_REAL_EXTENSIONS,
     check_content_type,
     check_double_extension,
     check_exec_mismatch,
@@ -350,6 +352,10 @@ def test_no_other_mismatch_on_unconfirmed_zip_subtype() -> None:
         ("holiday.jpg.scr", "jpg", "scr"),
         ("song.mp3.vbs", "mp3", "vbs"),
         ("report.docx.js", "docx", "js"),
+        ("invoice.pdf.msi", "pdf", "msi"),  # D71 lists msi as a risky real extension
+        ("archive.zip.exe", "zip", "exe"),  # D71 lists zip, rar and 7z as decoys
+        ("backup.rar.scr", "rar", "scr"),
+        ("photos.7z.bat", "7z", "bat"),
     ],
 )
 def test_double_extension(name: str, decoy: str, real: str) -> None:
@@ -648,3 +654,19 @@ def test_every_check_emits_a_registered_code_with_its_declared_evidence() -> Non
         assert finding.code in registry
         assert set(finding.evidence) == set(registry[finding.code].evidence), finding.code
         assert all(isinstance(value, str | int) for value in finding.evidence.values())
+
+
+def test_every_d71_extension_is_in_the_double_extension_sets() -> None:
+    """D71's lists are the minimum; the implementation may add more (D77), never fewer."""
+    d71_real = {"exe", "dll", "scr", "com", "pif", "cpl", "msi", "js", "ps1", "bat", "cmd", "vbs",
+                "hta", "lnk", "jar"}  # fmt: skip
+    d71_decoys = {"pdf", "doc", "docx", "xls", "xlsx", "txt", "mp4", "m4a", "m4v", "mov", "mp3",
+                  "png", "jpg", "jpeg", "jpe", "zip", "rar", "7z"}  # fmt: skip
+    assert d71_real <= DOUBLE_REAL_EXTENSIONS
+    assert d71_decoys <= DOUBLE_DECOY_EXTENSIONS
+
+
+def test_unknown_bytes_never_raise_other_even_if_marked_certain() -> None:
+    """D69: unknown content raises no type mismatch code, whatever its confidence says."""
+    unknown = Detection("unknown", "unknown", Family.unknown, DetectionConfidence.certain, None)
+    assert check_other_mismatch(unknown, "pdf") == []
