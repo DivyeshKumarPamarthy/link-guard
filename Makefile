@@ -65,5 +65,5 @@ test-ssrf:  ## SSRF table only (fake resolver, socket guard; no network)
 test-e2e:
 	@echo "make test-e2e: not implemented yet (acceptance matrix arrives in T3.3)"; exit 1
 
-samples:
-	@echo "make samples: not implemented yet (samples generator arrives in T2.6)"; exit 1
+samples:  ## Regenerate the harmless sample files into samples/ (same bytes every run)
+	cd demo && uv run python make_samples.py

@@ -26,12 +26,15 @@ make test      # runs backend (pytest) and web (vitest) tests
 ```
 
 `make lint` runs ruff + mypy and eslint + tsc; `make openapi` regenerates the API contract files.
-Other targets (`samples`, `test-e2e`, …) are listed in `CLAUDE.md`; until their task is done
-they print which task will build them and exit with an error.
+`make samples` generates the harmless sample files the demo server serves into `samples/`
+(gitignored).
 
 `make dev` starts the API (<http://127.0.0.1:8000>), the web app (<http://127.0.0.1:5173>) and the
 demo server (:8081, :8443, :8444) with Docker Compose; it needs Docker Desktop. The API runs in
 the `dev` profile, so it cannot reach the demo server's private addresses.
+
+Other targets (`test-e2e`, …) are listed in `CLAUDE.md`; until their task is done they print
+which task will build them and exit with an error.
 
 Web app: `cd web && npm run dev`, then open <http://localhost:5173/> (the dev-only style guide
 is at `/styleguide`).
