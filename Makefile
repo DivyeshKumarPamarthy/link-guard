@@ -56,8 +56,8 @@ check-openapi:  ## Fail if backend/openapi.json or web/src/api/types.ts are out 
 test-loop:  ## Unit tests for the automation loop (scripts/loop.py), standard library only
 	uv run --no-project --python 3.12 python -m unittest discover -s scripts/tests -t . -v
 
-dev:
-	@echo "make dev: not implemented yet (docker-compose arrives in T2.5)"; exit 1
+dev:  ## docker compose: api :8000, web :5173, demo :8081/:8443/:8444, all on 127.0.0.1 only
+	docker compose up --build
 
 test-ssrf:  ## SSRF table only (fake resolver, socket guard; no network)
 	cd backend && uv run pytest tests/ssrf -q
