@@ -87,3 +87,7 @@ Escalated, answered by Divyesh (2026-10-21):
 - `FETCH_UNSUPPORTED_ENCODING` approved (D61); the two config variables added to spec §4; D52, D53, D55–D60 upgraded to decided
 - D54 changed: a chunked body that ends cleanly (terminating chunk) is the whole file; a body read until close with no length stays partial
 - Module note: T3.1 must reuse the fetcher's web-page check and never add `LINK_IS_WEB_PAGE` twice
+
+## 2026-10-24
+
+### T2.2 · task/T2.2 · stopped (blocked): review failed: claude did not finish: error_max_budget_usd
