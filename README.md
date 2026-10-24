@@ -26,8 +26,12 @@ make test      # runs backend (pytest) and web (vitest) tests
 ```
 
 `make lint` runs ruff + mypy and eslint + tsc; `make openapi` regenerates the API contract files.
-Other targets (`dev`, `samples`, `test-ssrf`, `test-e2e`) are listed in `CLAUDE.md`; until their
-task is done they print which task will build them and exit with an error.
+Other targets (`samples`, `test-e2e`, …) are listed in `CLAUDE.md`; until their task is done
+they print which task will build them and exit with an error.
+
+`make dev` starts the API (<http://127.0.0.1:8000>), the web app (<http://127.0.0.1:5173>) and the
+demo server (:8081, :8443, :8444) with Docker Compose; it needs Docker Desktop. The API runs in
+the `dev` profile, so it cannot reach the demo server's private addresses.
 
 Web app: `cd web && npm run dev`, then open <http://localhost:5173/> (the dev-only style guide
 is at `/styleguide`).
@@ -45,6 +49,14 @@ The backend must run on `127.0.0.1` only and must never be exposed on a public i
 It has no authentication, open CORS and no rate limits by design (decisions D17 and D18 in
 `docs/decisions.md`), and it makes outbound requests to whatever link it is given. Exposed
 publicly, anyone could use it to make requests on your behalf.
+
+- Running it directly (`uv run python -m app`), it binds `LG_BIND_HOST`, which defaults to
+  `127.0.0.1`. Do not change it.
+- In `docker-compose.yml` every port is published as `127.0.0.1:<port>:<port>`. A bare
+  `8000:8000` would publish on every network interface of your machine, so anyone on the same
+  Wi-Fi could reach it. Inside the containers the servers listen on `0.0.0.0` (decision D31),
+  because that is the only way a published port reaches them; the host side stays loopback.
+  `backend/tests/unit/test_compose_ports.py` fails if any port is published another way.
 
 ## Repository layout
 
