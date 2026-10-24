@@ -91,3 +91,4 @@ Escalated, answered by Divyesh (2026-10-21):
 ## 2026-10-24
 
 ### T2.5 · task/T2.5 · ready for review
+### T2.6 · task/T2.6 · ready for review

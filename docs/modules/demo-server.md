@@ -1,6 +1,6 @@
 # Module: Demo server (M7, task T1.1)
 
-Owner: Divyesh (track C, D16) · Reviewer: TBD · Phase: B · Last updated: 2026-10-19
+Owner: Divyesh (track C, D16) · Reviewer: TBD · Phase: B · Last updated: 2026-10-24
 
 ## What it does (2–3 sentences, plain language)
 
@@ -17,7 +17,10 @@ demo all use it, so nothing needs the internet or real malware.
 
 | Path | Imitates | Used by |
 | --- | --- | --- |
-| `/f/{name}` | A normal file with its real Content-Type; Range and HEAD supported | rows 1, 3–6, 8–9, 21 |
+| `/f/{name}` | A normal file with its real Content-Type; Range and HEAD supported | rows 1, 8, 21 |
+| `/disguised/{name}` | A file whose name, Content-Type and Content-Disposition lie (`movie.mp4` that is a program) | rows 3–7, 9 |
+| `/cd/{variant}` | Tricky Content-Disposition names: `filename-star`, `traversal`, `quotes`, `rtl`, `nul` | name parsing, `EXT_SPOOFED_NAME` |
+| `/index` | A directory-listing-style HTML page | web-page detection |
 | `/big?range=yes\|no` | 200 MB MP4-shaped stream generated on the fly; `no` ignores Range | rows 2, 13 |
 | `/slow` | Headers, then 1 byte every 2 s | row 14 |
 | `/reset` | Promises 1 MB, sends 4 KB, drops the connection | T2.1 interrupted stream |
@@ -52,12 +55,13 @@ demo all use it, so nothing needs the internet or real malware.
 
 - `demo/tests/test_endpoints.py` (47, in-process): every endpoint, Range variants (start, middle, suffix, past the end, ignored), HEAD, missing sample message, path-escape attempts, chain a → b → c, bad chain parameters (open redirect refused), statuses, empty body.
 - `demo/tests/test_listeners.py` (12, real sockets on free ports): bound to 127.0.0.1 only, `/reset` drops after exactly 4096 bytes, chunked encoding, real-time slow drip, 200 MB stream read lazily, TLS valid for a/b/c.demo.test, hostname mismatch refused, wrong-cert listener refused (row 22), test CA not trusted by default, CA key never written.
+- `demo/tests/test_sample_endpoints.py` (T2.6, in-process with freshly generated samples): `/disguised` headers and real bytes for all five disguises, Range, escaping names, every `/cd` variant, missing-sample message, `/index` listing.
 - Tests may only connect to 127.0.0.1 (pytest-socket `--allow-hosts`).
 - Manual: `make demo-server`, then curl on all three ports.
 
 ## Known limitations
 
-- `/disguised/{name}`, `/cd/{variant}` and `/index` (spec §11) come with T1.5/T2.6, together with the samples they serve.
+- The sample files themselves come from `demo/make_samples.py` (see `samples.md`); without `make samples`, `/f`, `/disguised` and `/cd` answer 404 with a "run make samples" message.
 - `/reset` prints a traceback in the demo server's terminal; that is the deliberate drop.
 - `/chunked` serves a PDF-shaped body (`%PDF-` header), not a complete PDF document.
 

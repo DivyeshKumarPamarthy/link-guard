@@ -4,9 +4,12 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import type { ScanResult } from './api/contract.ts'
 import App from './App.tsx'
+import { URL_DISPLAY_CHARS } from './config.ts'
+import { middleTruncate } from './lib/text.ts'
 import { SPOOFED_NAME } from './styleguide/mockData.ts'
 import {
   ACCEPTED,
+  DEMO_DISGUISED_CHAIN,
   REJECTED_DONE,
   RUNNING,
   UNABLE_404,
@@ -95,6 +98,69 @@ describe('submit and polling', () => {
     expect(screen.getByText('70 / 100')).toBeDefined()
     expect(screen.getByText('812 ms total, 640 ms fetch')).toBeDefined()
     expect(screen.getByText('1.0.0 / 1.0.0')).toBeDefined()
+  })
+
+  test('renders every field of a real result (row 9: chain to the disguised sample)', async () => {
+    const result = DEMO_DISGUISED_CHAIN
+    fakeBackend(accepted, [done(result)])
+    render(<App />)
+    submit(result.input_url)
+    await screen.findByText('Unsafe')
+
+    // verdict band + headline
+    expect(screen.getByText(result.headline!)).toBeDefined()
+
+    // claimed vs actual: name, where it came from, content type, detected type, confidence
+    const panel = screen.getByRole('heading', { name: 'Claimed vs actual' }).parentElement!
+    expect(within(panel).getByText('movie.mp4')).toBeDefined()
+    expect(within(panel).getByText("Name from the server's download header")).toBeDefined()
+    expect(within(panel).getByText('video/mp4')).toBeDefined()
+    expect(within(panel).getByText('Windows executable')).toBeDefined()
+    expect(within(panel).getByText('Certain')).toBeDefined()
+    // the 16-byte hex strip with exactly the signature bytes highlighted
+    const strip = within(panel).getByLabelText('First bytes')
+    expect(strip.textContent).toBe('4d5a90000300000004000000ffff0000')
+    expect([...strip.querySelectorAll('mark')].map((m) => m.textContent)).toEqual(['4d', '5a'])
+    expect(within(panel).getByText('Highlighted: MZ (Windows executable)')).toBeDefined()
+
+    // every reason: severity word, message and code
+    const why = screen.getByRole('heading', { name: 'Why' }).parentElement!
+    for (const reason of result.reasons!) {
+      expect(within(why).getByText(reason.message)).toBeDefined()
+      expect(within(why).getByText(reason.code)).toBeDefined()
+    }
+    expect(within(why).getByText('High')).toBeDefined()
+    expect(within(why).getByText('Low')).toBeDefined()
+    expect(within(why).getByText('Info')).toBeDefined()
+
+    // every hop: URL as text, status, address class
+    const hops = screen.getByRole('heading', { name: 'Where the link went' }).parentElement!
+    expect(hops.querySelectorAll('li')).toHaveLength(3)
+    // long URLs are shortened in the middle on screen (the full one is behind "Show all")
+    const onScreen = (url: string) => (url.length > URL_DISPLAY_CHARS ? middleTruncate(url, URL_DISPLAY_CHARS) : url)
+    for (const hop of result.redirects) expect(within(hops).getByText(onScreen(hop.url))).toBeDefined()
+    expect(within(hops).getAllByText('302')).toHaveLength(2)
+    expect(within(hops).getByText('200')).toBeDefined()
+    expect(within(hops).getAllByText('private')).toHaveLength(3)
+
+    // details: final site and address, link type, scope, confidence, score, timings, versions
+    const details = screen.getByText('Details').closest('details')!
+    expect(within(details).getByText('c.demo.test')).toBeDefined()
+    expect(within(details).getByText(result.final_url!)).toBeDefined()
+    expect(within(details).getByText('Shortened link (redirects to another site)')).toBeDefined()
+    expect(within(details).getByText('Whole file checked (1 KB)')).toBeDefined()
+    expect(within(details).getByText('High')).toBeDefined()
+    expect(within(details).getByText('80 / 100')).toBeDefined()
+    expect(within(details).getByText('41 ms total, 38 ms fetch, 12 ms first_byte')).toBeDefined()
+    expect(within(details).getByText('1.0.0 / 1.0.0')).toBeDefined()
+  })
+
+  test('signals that could not be checked are listed in the details', async () => {
+    fakeBackend(accepted, [done({ ...DEMO_DISGUISED_CHAIN, unavailable_signals: ['reputation', 'pe-structure'] })])
+    render(<App />)
+    submit(DEMO_DISGUISED_CHAIN.input_url)
+    await screen.findByText('Unsafe')
+    expect(screen.getByText('reputation, pe-structure')).toBeDefined()
   })
 
   test('scanned URLs are never clickable links', async () => {

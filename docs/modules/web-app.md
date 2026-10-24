@@ -1,6 +1,6 @@
 # Module: Web app screens, submit and polling (M6, task T1.6)
 
-Owner: Divyesh (track C, D16) · Reviewer: TBD · Phase: B · Last updated: 2026-10-19
+Owner: Divyesh (track C, D16) · Reviewer: TBD · Phase: B · Last updated: 2026-10-24
 
 ## What it does (2–3 sentences, plain language)
 
@@ -20,6 +20,7 @@ report, unable to verify, rejected, unsupported, or an error/busy screen.
 3. `pollUntilDone()` (`api/poll.ts`) waits `poll_after_ms`, GETs the scan, and repeats with the wait ×1.5 up to 2 s until `state` is `done`.
 4. Every failure becomes an `ApiError` with a `kind`: `input` (our own 400 message, shown under the input), `unreachable` (fetch threw), `busy` (503), `server` (500, 404, unreadable JSON, unknown schema major).
 5. `ReportScreen` picks the layout from `display_verdict` only (D4): band + headline, then claimed vs actual, why, where the link went, and collapsed details for scanned results; hints for unable (`screens/hints.ts`, keyed by reason code, D33); the "protects your network" note for rejected.
+   The report (T2.6, spec §10): claimed vs actual shows the claimed name with where it came from (`name_source`), the content type, the detected label with its confidence, and the 16-byte hex strip with the signature bytes highlighted; Details shows final site and address, link type, what was read, signals not checked, confidence, score, timings and engine/rules versions.
 6. URLs are mono text via `UrlText`: middle-truncated with "Show all", "Copy URL", never a link.
 7. All remote text goes through React text nodes and `showInvisible()`, so HTML stays text and bidi characters show as `\u202E` (the escape text, never the character itself).
 
@@ -37,11 +38,14 @@ report, unable to verify, rejected, unsupported, or an error/busy screen.
 - `src/api/poll.test.ts`: polls until done; backoff sequence 500, 750, 1125, 1688, 2000…; ceiling cap; an error stops polling.
 - `src/api/client.test.ts`: POST body and URL; unknown fields ignored; 400 input codes; unreachable; 503 busy; 500 / other 400 / non-JSON / 404 / schema 2.0 → server error.
 - `src/App.test.tsx` (fake `fetch`, no backend): submit → checking → report; every report section; URLs never clickable; check another link; unable (hints, check again, never "Safe"); rejected (no details); unsupported (names the type); unknown reason code; inline 400 errors keep focus; unreachable + try again; busy without auto-retry; 500 on submit and while polling; hostile filename `<img src=x onerror=alert(1)>` rendered as text; hostile URL, headline and reason text; RTL override escaped.
+- `src/App.test.tsx` (T2.6): "renders every field of a real result": acceptance row 9 (2-hop chain to the disguised hello PE) checked field by field, including the exact hex bytes and which two are highlighted; unchecked signals listed in Details.
 - `src/screens/hints.test.ts`, `src/lib/text.test.ts` (middle truncation).
 
 ## Known limitations
 
-- Wired to the mock backend only; the real endpoint and the complete report page come in T2.6, the full screen set (360 px checklist, keyboard pass) in T3.2.
+- The app calls the backend's real `POST /api/scans` and `GET /api/scans/{id}`, but the backend still answers from the `MockExecutor` until T2.4. The full screen set (360 px checklist, keyboard pass) comes in T3.2.
+- The report's "every field" test uses a hand-written row-9 result (`DEMO_DISGUISED_CHAIN`); T3.2 replaces it with one captured from the real executor.
+- Not shown on purpose: `schema_version`, `scan_id`, `state`, `status` and `verdict` (the screen uses `display_verdict`, D4), `normalized_url`, the timestamps, the scope byte counts (the scope label says it in words), and each reason's weight, group and evidence (the message already says it).
 - Example links on Home (demo profile only, spec §10) are not shown yet: the web app has no way to know the backend profile.
 - The busy screen does not count down `Retry-After`; it only says to try again in a few seconds.
 - No client-side time limit while polling: it relies on the backend's overall scan timeout (T2.4).

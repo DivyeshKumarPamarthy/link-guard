@@ -6,6 +6,7 @@ a slow or broken connection, a compressed body, redirects, error statuses, a web
 
 import asyncio
 import gzip
+import html
 from collections.abc import AsyncIterator, Iterator
 from pathlib import Path
 from urllib.parse import quote
@@ -83,6 +84,31 @@ def missing_sample(name: str) -> PlainTextResponse:
     )
 
 
+# /cd/{variant}: a tricky Content-Disposition header and the sample served with it. The
+# Content-Type is octet-stream ("no signal"), so the header's file name is the only claim.
+# Non-ASCII and NUL can't go into an HTTP header raw, so those use RFC 5987 `filename*`.
+CD_VARIANTS = {
+    "filename-star": (
+        "attachment; filename=\"fallback.pdf\"; filename*=UTF-8''r%C3%A9sum%C3%A9.pdf",
+        "sample.pdf",
+    ),
+    "traversal": ('attachment; filename="../../etc/passwd.pdf"', "sample.pdf"),
+    "quotes": ('attachment; filename="report \\"final\\".pdf"', "sample.pdf"),
+    # U+202E (right-to-left override): "invoice<RLO>fdp.exe" displays as "invoiceexe.pdf".
+    "rtl": ("attachment; filename*=UTF-8''invoice%E2%80%AEfdp.exe", "sample.exe"),
+    "nul": ("attachment; filename*=UTF-8''report%00.pdf", "sample.pdf"),
+}
+
+
+def index_html(names: list[str]) -> str:
+    """A directory-listing-style page, like the ones web servers generate for folders."""
+    rows = "\n".join(f'<li><a href="/f/{quote(n)}">{html.escape(n)}</a></li>' for n in names)
+    return (
+        "<!doctype html>\n<html><head><title>Index of /f/</title></head>\n"
+        f"<body><h1>Index of /f/</h1>\n<ul>\n{rows}\n</ul></body></html>\n"
+    )
+
+
 def create_app(settings: DemoSettings) -> Starlette:
     async def sample_file(request: Request) -> Response:
         """/f/{name}: a sample with its real Content-Type; Range and HEAD supported."""
@@ -91,6 +117,39 @@ def create_app(settings: DemoSettings) -> Starlette:
         if path is None:
             return missing_sample(name)
         return FileResponse(path, media_type=content_type_for(name))
+
+    async def disguised(request: Request) -> Response:
+        """/disguised/{name}: a sample whose name lies (movie.mp4 that is really a program).
+
+        Content-Type and Content-Disposition both repeat the lie, as a malicious server would.
+        """
+        name = request.path_params["name"]
+        path = sample_path(settings.samples_dir / "disguised", name)
+        if path is None:
+            return missing_sample(f"disguised/{name}")
+        return FileResponse(
+            path,
+            media_type=content_type_for(name),
+            headers={"Content-Disposition": f'attachment; filename="{name}"'},
+        )
+
+    async def content_disposition(request: Request) -> Response:
+        """/cd/{variant}: a sample sent with one of the CD_VARIANTS file-name tricks."""
+        variant = CD_VARIANTS.get(request.path_params["variant"])
+        if variant is None:
+            return PlainTextResponse(f"choose one of {sorted(CD_VARIANTS)}", status_code=404)
+        header, sample = variant
+        path = sample_path(settings.samples_dir, sample)
+        if path is None:
+            return missing_sample(sample)
+        return FileResponse(
+            path, media_type="application/octet-stream", headers={"Content-Disposition": header}
+        )
+
+    async def index(request: Request) -> Response:
+        """/index: an HTML folder listing of the genuine samples (a page, not a file)."""
+        names = sorted(p.name for p in settings.samples_dir.glob("*") if p.is_file())
+        return HTMLResponse(index_html(names))
 
     async def big(request: Request) -> Response:
         """/big?range=yes|no: a 200 MB MP4-shaped stream generated on the fly.
@@ -244,6 +303,9 @@ def create_app(settings: DemoSettings) -> Starlette:
     return Starlette(
         routes=[
             Route("/f/{name}", sample_file, methods=get_and_head),
+            Route("/disguised/{name}", disguised, methods=get_and_head),
+            Route("/cd/{variant}", content_disposition, methods=get_and_head),
+            Route("/index", index, methods=get_and_head),
             Route("/big", big, methods=get_and_head),
             Route("/slow", slow, methods=get_and_head),
             Route("/reset", reset, methods=get_and_head),

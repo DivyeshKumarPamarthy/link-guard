@@ -51,7 +51,7 @@ Types: `pe-executable`, `dos-executable`, `elf-executable`, `macho-executable`,
 read correctly after "a" (D27), PE/ZIP/MP3/PDF/text edge cases from the plan's M4 table,
 too-short buffers, 20 Content-Disposition variants (quotes, escapes, RFC 5987, bad charsets,
 unterminated quotes), hostile names (`../`, `\`, NUL, U+202E, trailing dots), and the extension chain.
-Generated samples are checked later by `test_detect_samples.py` (T2.6).
+Generated samples are checked by `backend/tests/unit/test_detect_samples.py` (T2.6, see `samples.md`): every file `make samples` writes, genuine and disguised.
 
 ## Known limitations
 

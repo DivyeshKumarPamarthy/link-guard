@@ -31,7 +31,7 @@ select = ["E", "F", "W", "I", "B", "UP"]
 
 [tool.mypy]
 strict = true
-files = ["demo_server", "tests"]
+files = ["demo_server", "tests", "make_samples.py"]
 
 [dependency-groups]
 dev = [
