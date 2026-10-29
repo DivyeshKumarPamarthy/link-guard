@@ -23,6 +23,7 @@ from app.core.config import (
 )
 from app.db.models import make_engine, make_session_factory
 from app.engine import ENGINE_VERSION
+from app.orchestrator.executor import InProcessExecutor
 from app.orchestrator.mock_executor import Executor, MockExecutor
 from app.orchestrator.scans import Orchestrator, ScanStore
 from app.registry.loader import get_registry
@@ -44,6 +45,13 @@ def _openapi_without_422(app: FastAPI) -> dict[str, Any]:
     return app.openapi_schema
 
 
+def build_executor(settings: Settings) -> Executor:
+    """Select the real in-process executor or the mock one from config alone (T2.4)."""
+    if settings.executor == "mock":
+        return MockExecutor(settings.mock_delay_ms)
+    return InProcessExecutor(settings)
+
+
 def create_app(settings: Settings | None = None, executor: Executor | None = None) -> FastAPI:
     settings = settings or get_settings()
     registry = get_registry()  # fails startup if the registry is invalid
@@ -53,7 +61,8 @@ def create_app(settings: Settings | None = None, executor: Executor | None = Non
     store = ScanStore(
         make_session_factory(make_engine(settings.database_url)), registry.rules_version
     )
-    orchestrator = Orchestrator(store, executor or MockExecutor(settings.mock_delay_ms), registry)
+    active_executor = executor or build_executor(settings)
+    orchestrator = Orchestrator(store, active_executor, registry, settings)
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:

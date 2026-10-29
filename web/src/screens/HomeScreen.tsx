@@ -1,11 +1,18 @@
-// Screen 1: title, one-line explanation, link input, "Check link", "What we check".
+// Screen 1: title, one-line explanation, link input, "Check link", "What we check",
+// and the localStorage recent-scans list below "What we check" (spec §10 P1, D33).
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { UrlText } from '../components/LongText.tsx'
+import { VerdictBadge } from '../components/VerdictBadge.tsx'
+import type { RecentScan } from '../lib/recentScans.ts'
 
 interface Props {
   initialUrl: string
   /** Our own 400 message (e.g. "Paste a link to check."), shown under the input. */
   inputError: string | null
   onSubmit: (url: string) => void
+  recentScans?: RecentScan[]
+  onClearRecent?: () => void
+  onSelectRecent?: (item: RecentScan) => void
 }
 
 const WHAT_WE_CHECK = [
@@ -14,7 +21,14 @@ const WHAT_WE_CHECK = [
   'Whether the address is safe to contact',
 ]
 
-export function HomeScreen({ initialUrl, inputError, onSubmit }: Props) {
+export function HomeScreen({
+  initialUrl,
+  inputError,
+  onSubmit,
+  recentScans = [],
+  onClearRecent,
+  onSelectRecent,
+}: Props) {
   const [url, setUrl] = useState(initialUrl)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -78,6 +92,47 @@ export function HomeScreen({ initialUrl, inputError, onSubmit }: Props) {
           ))}
         </ul>
       </section>
+
+      {recentScans.length > 0 && (
+        <section aria-labelledby="recent-scans">
+          <div className="flex items-baseline justify-between gap-4">
+            <h2 id="recent-scans" className="text-section font-semibold">
+              Recent scans
+            </h2>
+            {onClearRecent && (
+              <button
+                type="button"
+                onClick={onClearRecent}
+                className="text-small font-medium text-brand hover:underline"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          <ul className="mt-2 space-y-2">
+            {recentScans.map((item) => (
+              <li
+                key={item.scan_id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-panel border border-line bg-surface p-3"
+              >
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <VerdictBadge verdict={item.display_verdict} />
+                  <UrlText url={item.url} />
+                </div>
+                {onSelectRecent && (
+                  <button
+                    type="button"
+                    onClick={() => onSelectRecent(item)}
+                    className="rounded-control border border-line bg-surface px-3 py-1 text-small font-medium text-brand"
+                  >
+                    Check again
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   )
 }

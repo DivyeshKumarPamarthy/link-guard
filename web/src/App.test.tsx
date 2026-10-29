@@ -1,7 +1,7 @@
 // End-to-end tests of the web app against a fake backend (no real server, no internet):
 // submit → poll → report, every result screen, the error states and hostile remote text.
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import { afterEach, describe, expect, test, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import type { ScanResult } from './api/contract.ts'
 import App from './App.tsx'
 import { URL_DISPLAY_CHARS } from './config.ts'
@@ -19,9 +19,14 @@ import {
   jsonResponse,
 } from './test/fixtures.ts'
 
+beforeEach(() => {
+  window.localStorage.clear()
+})
+
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
+  window.localStorage.clear()
 })
 
 type Answer = Response | Error
@@ -58,6 +63,22 @@ describe('home', () => {
     expect(screen.getByRole('button', { name: 'Check link' })).toBeDefined()
     expect(screen.getByText("The file's real type, read from its first bytes")).toBeDefined()
     expect(screen.getByRole('main').getAttribute('aria-live')).toBe('polite')
+  })
+
+  test('saves completed scans to localStorage and shows them on Home with a Clear button', async () => {
+    fakeBackend(accepted, [done(UNSAFE_DONE)])
+    render(<App />)
+    submit('https://short.example/abc')
+    fireEvent.click(await screen.findByRole('button', { name: 'Check another link' }))
+
+    const recent = screen.getByRole('heading', { name: 'Recent scans' }).closest('section')!
+    expect(within(recent).getByText('Unsafe')).toBeDefined()
+    expect(within(recent).getByText('https://short.example/abc')).toBeDefined()
+    // Scanned URLs in recent list are also never clickable links
+    expect(recent.querySelectorAll('a')).toHaveLength(0)
+
+    fireEvent.click(within(recent).getByRole('button', { name: 'Clear' }))
+    expect(screen.queryByRole('heading', { name: 'Recent scans' })).toBeNull()
   })
 })
 

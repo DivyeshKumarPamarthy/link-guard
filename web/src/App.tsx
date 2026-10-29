@@ -4,6 +4,12 @@ import { useState } from 'react'
 import { ApiError, getScan, submitScan, type ApiErrorKind } from './api/client.ts'
 import type { ScanResult } from './api/contract.ts'
 import { pollUntilDone } from './api/poll.ts'
+import {
+  clearRecentScans,
+  loadRecentScans,
+  saveRecentScan,
+  type RecentScan,
+} from './lib/recentScans.ts'
 import { CheckingScreen } from './screens/CheckingScreen.tsx'
 import { ErrorScreen } from './screens/ErrorScreen.tsx'
 import { HomeScreen } from './screens/HomeScreen.tsx'
@@ -19,6 +25,7 @@ const HOME: Screen = { name: 'home', url: '', inputError: null }
 
 function App() {
   const [screen, setScreen] = useState<Screen>(HOME)
+  const [recentScans, setRecentScans] = useState<RecentScan[]>(() => loadRecentScans())
 
   /** Submit, then poll. While this runs the checking screen is shown, so there is no second submit. */
   async function check(url: string) {
@@ -26,6 +33,7 @@ function App() {
     try {
       const accepted = await submitScan(url)
       const result = await pollUntilDone(accepted.scan_id, accepted.poll_after_ms, getScan)
+      setRecentScans(saveRecentScan(result))
       setScreen({ name: 'report', url, result })
     } catch (error) {
       const kind = error instanceof ApiError ? error.kind : 'server'
@@ -35,6 +43,11 @@ function App() {
         setScreen({ name: 'error', url, kind })
       }
     }
+  }
+
+  function handleClearRecent() {
+    clearRecentScans()
+    setRecentScans([])
   }
 
   const goHome = () => setScreen(HOME)
@@ -50,7 +63,14 @@ function App() {
       )}
       <main aria-live="polite" className="flex-1 py-8">
         {screen.name === 'home' && (
-          <HomeScreen initialUrl={screen.url} inputError={screen.inputError} onSubmit={check} />
+          <HomeScreen
+            initialUrl={screen.url}
+            inputError={screen.inputError}
+            onSubmit={check}
+            recentScans={recentScans}
+            onClearRecent={handleClearRecent}
+            onSelectRecent={(item) => check(item.url)}
+          />
         )}
         {screen.name === 'checking' && <CheckingScreen url={screen.url} />}
         {screen.name === 'report' && (

@@ -1,4 +1,4 @@
-"""API tests with the MockExecutor (task T0.7, spec §2)."""
+"""API tests with the MockExecutor and busy guard (tasks T0.7, T2.4, spec §2)."""
 
 import time
 from collections.abc import Iterator
@@ -11,13 +11,16 @@ from fastapi.testclient import TestClient
 from app.__main__ import server_options
 from app.contract.models import ScanResult
 from app.core.config import Settings
-from app.main import create_app
-from app.orchestrator.mock_executor import ExecutorOutput
+from app.main import build_executor, create_app
+from app.orchestrator.executor import InProcessExecutor
+from app.orchestrator.mock_executor import ExecutorOutput, MockExecutor
+from app.orchestrator.scans import ServerBusyError
 
 
 def make_settings(tmp_path: Path, **overrides: Any) -> Settings:
     values: dict[str, Any] = {
         "database_url": f"sqlite:///{tmp_path / 'api.db'}",
+        "executor": "mock",
         "mock_delay_ms": 30,
     }
     values.update(overrides)
@@ -87,6 +90,11 @@ def test_unknown_request_fields_are_ignored(client: TestClient) -> None:
     assert response.status_code == 202
 
 
+def test_executor_selection_is_config_only() -> None:
+    assert isinstance(build_executor(Settings()), InProcessExecutor)
+    assert isinstance(build_executor(Settings(executor="mock")), MockExecutor)
+
+
 # --- input errors (400) --------------------------------------------------------------
 
 
@@ -154,7 +162,7 @@ def test_malformed_body_is_400_invalid_request(client: TestClient, body: bytes) 
     assert (response.status_code, error_code(response)) == (400, "INVALID_REQUEST")
 
 
-# --- 404 / 405 / 413 / 500 --------------------------------------------------------------
+# --- 404 / 405 / 413 / 500 / 503 -----------------------------------------------------
 
 
 def test_unknown_scan_id_is_404(client: TestClient) -> None:
@@ -238,6 +246,26 @@ def test_dishonest_executor_output_is_refused(tmp_path: Path) -> None:
         scan_id = client.post("/api/scans", json={"url": "https://x.example/a"}).json()["scan_id"]
         result = poll_until_done(client, scan_id)
     assert result["display_verdict"] == "UNABLE_TO_VERIFY"
+
+
+def test_server_busy_returns_503_with_retry_after(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    app = create_app(make_settings(tmp_path, busy_retry_after_s=5))
+
+    def busy(url: str) -> None:
+        raise ServerBusyError(retry_after_s=5)
+
+    monkeypatch.setattr(app.state.orchestrator, "submit", busy)
+    with TestClient(app, raise_server_exceptions=False) as client:
+        response = client.post(
+            "/api/scans",
+            json={"url": "https://x.example/a"},
+            headers={"Origin": "http://localhost:5173"},
+        )
+    assert (response.status_code, error_code(response)) == (503, "SERVER_BUSY")
+    assert response.headers["retry-after"] == "5"
+    assert response.headers["access-control-allow-origin"] == "*"
 
 
 def test_unexpected_error_is_500_without_stack_trace(

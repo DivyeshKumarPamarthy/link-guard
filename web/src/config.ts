@@ -11,3 +11,9 @@ export const POLL_BACKOFF_FACTOR = 1.5
 
 /** Long URLs are shown shortened in the middle to this many characters, with an expand button. */
 export const URL_DISPLAY_CHARS = 60
+
+/** Spec §10 (P1): at most this many recent scans are kept in browser localStorage. */
+export const MAX_RECENT_SCANS = 20
+
+/** Key used in window.localStorage for the recent-scans list. */
+export const RECENT_SCANS_STORAGE_KEY = 'linkguard.recent_scans'

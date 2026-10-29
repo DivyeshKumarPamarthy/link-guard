@@ -69,6 +69,62 @@ Browsing API documentation and the Chrome download-protection description; one o
 file-type identification by magic bytes; OWASP SSRF Prevention Cheat Sheet; one survey on
 URL shorteners and malicious redirects.
 
+## Draft notes for chapters 3–7 (T4.4)
+
+### Chapter 3: Requirements
+
+**Functional requirements (Phase 1 = Phases A + B):**
+1. **Link submission and cleaning (M3):** Accept a pasted URL (`POST /api/scans`, max 2048 chars, max 8 KB request body), trim wrappers (`"..."`, `<...>`, trailing punctuation), prepend `https://` when missing, and reject empty (`URL_EMPTY`), over-long (`URL_TOO_LONG`) or multi-link (`URL_MULTIPLE`) submissions with HTTP 400.
+2. **Link classification (M3):** Route `http`/`https` downloads to the fetcher; classify `magnet:`, `ftp:`, `intent:` and `.torrent` links as `unsupported` (`LINK_TYPE_UNSUPPORTED`); reject `file:`, `gopher:`, `data:`, `javascript:` and `blob:` schemes (`URL_SCHEME_UNSUPPORTED`).
+3. **SSRF-safe redirect following and head fetch (M2):** Validate every hop before connecting; resolve DNS once per hop and reject any non-public IP (`URL_PRIVATE_ADDRESS` / `SSRF_BLOCKED_AT_HOP`); pin the TCP/TLS connection to the validated IP while sending the original `Host` header and TLS `sni_hostname`; stream at most `LG_HEAD_FETCH_BYTES` (5 MB) under `LG_TOTAL_DEADLINE_S` (20 s) and `LG_MIN_THROUGHPUT_BPS` (1024 B/s after a 5 s grace period).
+4. **Magic-byte detection and mismatch checks (M4):** Identify all formats in the spec §7 table (PE, DOS MZ, ELF, Mach-O/Java class, ZIP, DOCX, XLSX, JAR, APK, 7z, RAR4/RAR5, PDF, OLE, MP4, MP3, PNG, JPEG, plain text) and compare against the claimed filename (`Content-Disposition` → final URL → input URL) and `Content-Type` header (`TYPE_MISMATCH_EXEC`, `TYPE_MISMATCH_TEXT`, `TYPE_MISMATCH_OTHER`, `EXT_DOUBLE`, `EXT_RISKY`, `EXT_SPOOFED_NAME`, `TYPE_CONTENT_TYPE_MISMATCH`, `TYPE_POLYGLOT`).
+5. **Explainable scoring and honest verdicts (M5):** Pure scoring function (`score = min(100, sum over groups of max(weight))`) with thresholds 30 (`SUSPICIOUS`) and 60 (`UNSAFE`), hard rule `TYPE_MISMATCH_EXEC -> UNSAFE`, and strict honesty rules (`UNABLE_TO_VERIFY` on missing evidence, `NO_ISSUES_IN_CHECKED_PART` on partial reads).
+6. **Web inspection slip UI (M6):** Render all 7 screens (Home, Checking, Report, Unable to verify, Rejected, Unsupported, Error/Busy), including the 16-byte highlighted hex strip, redirect chain, collapsed details, and browser-local recent scans (`localStorage`).
+
+**Non-functional requirements (spec §13, C6):**
+- **Safety:** Never execute, import, or write downloaded bytes to paths derived from remote data; bind only to `127.0.0.1` (`D18`).
+- **Performance & bounded memory:** Latency p95 < 3 s on the local demo server for files ≤ 5 MB; overall termination within `LG_TOTAL_DEADLINE_S + 2 s`; Python memory bounded near the 5 MB cap even against a 200 MB stream; concurrency capped at `asyncio.Semaphore(4)` with HTTP 503 `SERVER_BUSY` above 20 waiting scans.
+- **Offline determinism & accessibility:** Zero CDN assets (`@fontsource/ibm-plex-sans`, `@fontsource/ibm-plex-mono`); WCAG AA contrast verified in automated tests; works down to 360 px width.
+
+### Chapter 4: System design
+
+**Architecture and data flow of one scan (`CLAUDE.md`):**
+1. **`API` (`backend/app/api/`):** `BodySizeLimit` middleware enforces the 8 KB cap; `check_submission()` validates input; `POST /api/scans` calls `Orchestrator.submit(url)` and returns `202 Accepted` (`{scan_id, state: "queued", poll_after_ms: 500}`).
+2. **`Orchestrator` (`backend/app/orchestrator/scans.py`):** Persists the `queued` row in SQLite (WAL mode), gates execution with `asyncio.Semaphore(4)`, transitions to `running`, and invokes `Executor.run(url)` across a JSON-serializable seam (`RawScanReport`).
+3. **`InProcessExecutor` (`backend/app/orchestrator/executor.py`):**
+   - **Router (`engine/router/`):** Cleans URL and runs pure `classify(url)`.
+   - **Fetcher (`engine/fetcher/`):** Per hop, runs `check_target()` (URL checks → IDNA UTS-46 + strict WHATWG IP-literal parser → single DNS lookup via `Resolver` → `is_public()` with D40 IPv6/NAT64 rules), opens a fresh `httpx.AsyncClient` pinned to `target.ip` with `sni_hostname=target.punycode_host`, sends `HEAD` (`Connection: close`) then `GET` with `Range: bytes=0-5242879`, and streams up to 5 MB.
+   - **Detectors (`engine/detect/`):** Runs `detect_type()` on `body_head`, refines full-scope ZIP subtypes via `zipfile.ZipFile.namelist()` (`refine_zip_subtype`, D75), extracts `claimed_name()` (RFC 6266 / RFC 5987), and runs all mismatch checks (`run_mismatch_checks()`).
+4. **`Scorer` (`engine/scoring/`):** Pure function `score_scan(findings, read_facts, registry, thresholds)` computes `status`, `verdict`, `display_verdict`, `score`, `confidence`, `scope`, `headline`, and sorted `reasons`. `ScanResult` model validators (`D29`) enforce that no partial or low-confidence scan can ever return `display_verdict = SAFE`.
+5. **Threat model (`docs/threat-model.md`):** Mitigates SSRF (IP literal normalization, DNS pinning, per-hop TLS client isolation `D41`), DoS/zip bombs (5 MB raw + decoded byte cap, 20 s deadline, 1 KB/s throughput floor, 4-scan semaphore), XSS (React text nodes only, no clickable scanned URLs, `\uXXXX` escaping of bidi/control characters), and log injection/leakage (`safe()` strips control/ANSI/bidi chars and redacts query values).
+
+### Chapter 5: Implementation (module summary from `docs/modules/`)
+
+- **Configuration & Registry (`core/config.py`, `registry/`):** `pydantic-settings` with profile guard refusing `LG_STATIC_HOSTS`, `LG_SSRF_EXEMPT`, and `LG_EXTRA_CA_BUNDLE` in `dev`/`prod`. 38 reason codes in `reason_codes.yaml` verified at startup and against all source files.
+- **SSRF-Safe Fetcher (`engine/fetcher/`):** `ip_literals.py` parses decimal (`2130706433`), octal (`0177.0.0.1`), hex (`0x7f.1`), and short IPv4 forms; `targets.py` enforces D40 address rules; `pinned.py` pins the IP and TLS SNI per hop; `redirects.py` enforces manual redirect limits, loop detection, and hop recording; `fetch.py` and `response_rules.py` handle Range verification, capped gzip/deflate decoding, 429 single-retry, and throughput enforcement.
+- **Router (`engine/router/`):** `clean_url()`, `classify()`, 1 KB HTML body sniff (`is_html_body()`), cloud-share page detection (`cloud_share_service()`), and mixed-script/confusable IDN detection (`is_homograph_host()`).
+- **File-Type Detector & Mismatch Engine (`engine/detect/`):** `signatures.py` implements magic-byte detectors ordered riskiest-family-first plus in-memory ZIP central-directory listing (`refine_zip_subtype()`); `names.py` implements RFC 6266/5987 filename extraction; `mismatch.py` implements equivalence-class comparisons, double-extension sets (`D71`, `D77`), Unicode `Cc`/`Cf` spoofed-name detection (`D72`), and narrow polyglot detection (`D73`).
+- **Scorer & Orchestrator (`engine/scoring/`, `orchestrator/`):** Pure `score_scan()` + `build_scope()`, and `Orchestrator` + `InProcessExecutor` with `RawScanReport` validation.
+- **Web App (`web/src/`):** React 19 + TypeScript 5.9 + Tailwind v4 inspection-slip UI, `pollUntilDone()` with 1.5× backoff up to 2 s, `ClaimedVsActual` + 16-byte `HexStrip`, and `localStorage` recent scans.
+- **Demo Server & Sample Kit (`demo/`):** Deterministic `make_samples.py` (fixed seed `20261016`, 24 files with `SHA256SUMS`) and 3-listener Starlette server (`:8081` HTTP, `:8443` valid TLS, `:8444` wrong-host TLS).
+
+### Chapter 6: Testing and results
+
+- **Automated test suites (all offline, network sockets blocked by `pytest-socket`):**
+  - **Backend unit, contract, SSRF, golden, and integration tests:** > 1,100 tests covering all 45+ SSRF rows (`tests/ssrf/`), 17 golden scoring files (`tests/golden/`), all format signatures and mismatch rules (`tests/unit/`), OpenAPI contract parity (`tests/contract/`), and log safety (`tests/integration/test_log_safety.py`).
+  - **End-to-end acceptance matrix (`tests/e2e/test_acceptance_matrix.py`):** All 22 rows of spec §12 (24 test runs including 18a/18b/18c) pass against the local demo server:
+    - Caught disguised executables / risky names: **100%** (rows 3, 4, 9).
+    - False alarms on genuine samples: **0%** across all generated formats (`test_detect_samples.py`, rows 1, 8, 21).
+    - SSRF attempts blocked with zero outbound connections to private targets: **100%** (rows 11, 12 + 45 SSRF table rows).
+    - Partial/failed scans never shown as plain `SAFE`: **100%** (rows 2, 7, 10, 13–20, 22).
+  - **Web Vitest suite (`web/`):** 120 tests across 10 test files (polling backoff, API error mapping, WCAG AA contrast across all light/dark token pairs, hostile XSS/bidi filenames, full row-9 report rendering, and `localStorage` recent scans).
+  - **Demo server & automation loop tests:** 91 demo server tests + loop unit tests.
+
+### Chapter 7: Limitations and future work
+
+Summarise `docs/limitations.md`:
+- **By design in Phase 1:** Only the first 5 MB are read (tail reads arrive in Phase D); magic-byte structural verification only (no behavioral sandbox or antivirus signatures); web pages and cloud-share pages are not scraped; `.torrent` and ZIP interior inspection arrive in Phase D; reputation lookups and hardened container execution arrive in Phase E; the Chrome MV3 download-interceptor extension arrives in Phase C.
+
 ## Viva question bank (prepare a 2–3 sentence answer each; add new ones after every rehearsal)
 
 | Question | Key points |
@@ -93,3 +149,6 @@ URL shorteners and malicious redirects.
 | Is the UI accessible? | Word + icon for every verdict; contrast computed from the real CSS in tests (WCAG AA); keyboard focus ring |
 | What is a "Trojan Source" attack and could it affect your code? | Hidden bidi characters make code read differently from how it runs; a test fails if any source file contains one |
 | How would you extend it? | More analyzers behind the same findings interface; run scans in separate containers |
+| How does LinkGuard distinguish a `.docx` from a plain `.zip` safely? | Both start with `PK\x03\x04`; if the whole file was read (`full` scope), `refine_zip_subtype` inspects `ZipFile.namelist()` in memory (capped at 10,000 entries, never extracting bytes) for `[Content_Types].xml` and `word/` (D75) |
+| What happens when a server ignores `Range` and sends a 200 MB file? | `Fetcher.stream` counts raw bytes from `aiter_raw()`, slices at 5 MB, and closes the connection immediately without draining the remaining 195 MB (D55) |
+| Why does `safe()` scan inside exception strings for URLs? | `httpx` and other libraries embed the request URL inside exception messages; redacting embedded URLs prevents signed-URL query tokens from leaking into error logs (D30, T3.5) |
