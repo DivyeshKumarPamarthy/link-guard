@@ -20,10 +20,21 @@ const secondaryButton = 'rounded-control border border-line bg-surface px-4 py-2
 
 const CONFIDENCE = { high: 'High', medium: 'Medium', low: 'Low' } as const
 
-/** Collapsed facts for the curious: what was read, confidence, score, timings, versions. */
+const LINK_TYPE: Record<string, string> = {
+  http: 'Direct link',
+  shortened: 'Shortened link (redirects to another site)',
+}
+
+/** Collapsed facts for the curious: where it ended, what was read, confidence, score, timings, versions. */
 function Details({ result }: { result: ScanResult }) {
   const timings = result.timings_ms
-  const rows: [string, string][] = [['What was read', result.scope?.label ?? 'Nothing was read']]
+  const rows: [string, string][] = []
+  if (result.link_type) rows.push(['Link type', LINK_TYPE[result.link_type] ?? result.link_type])
+  rows.push(['What was read', result.scope?.label ?? 'Nothing was read'])
+  // Checks that could not run for this scan (spec §2); empty in Phase 1 unless something failed.
+  if (result.unavailable_signals.length > 0) {
+    rows.push(['Not checked', result.unavailable_signals.map(showInvisible).join(', ')])
+  }
   if (result.confidence) rows.push(['Confidence', CONFIDENCE[result.confidence] ?? result.confidence])
   if (result.score !== null) rows.push(['Score', `${result.score} / 100`])
   if (timings) {
@@ -48,6 +59,14 @@ function Details({ result }: { result: ScanResult }) {
               {/* IDN hosts show both forms (spec §10). */}
               {result.punycode_host && result.punycode_host !== result.display_host &&
                 ` (${showInvisible(result.punycode_host)})`}
+            </dd>
+          </>
+        )}
+        {result.final_url && (
+          <>
+            <dt className="font-medium text-muted">Final address</dt>
+            <dd className="min-w-0">
+              <UrlText url={result.final_url} />
             </dd>
           </>
         )}

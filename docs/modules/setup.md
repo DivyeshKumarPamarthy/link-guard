@@ -53,8 +53,8 @@ empty packages.
 
 ## Known limitations
 
-- `make dev`, `samples`, `test-ssrf`, `test-e2e` are stubs until their tasks.
-- No docker-compose yet (T2.5).
+- `make samples` and `make test-e2e` are stubs until their tasks.
+- `make dev` (docker-compose) arrived in T2.5; see `docs/modules/compose.md`.
 - Verified on macOS (Apple Silicon) only so far.
 
 ## Likely viva questions (and your short answers)

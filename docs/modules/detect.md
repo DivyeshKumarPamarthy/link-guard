@@ -88,14 +88,15 @@ Mismatch checks (T2.2, `mismatch.py`; each one a separate function returning fin
 
 `backend/tests/unit/test_detect_type.py`: every spec §7 format from inline byte fixtures, labels
 read correctly after "a" (D27), PE/ZIP/MP3/PDF/text edge cases from the plan's M4 table,
-too-short buffers, 20 Content-Disposition variants, hostile names, and the extension chain.
+too-short buffers, 20 Content-Disposition variants (quotes, escapes, RFC 5987, bad charsets,
+unterminated quotes), hostile names (`../`, `\`, NUL, U+202E, trailing dots), and the extension chain.
+Generated samples are checked by `backend/tests/unit/test_detect_samples.py` (T2.6, see `samples.md`): every file `make samples` writes, genuine and disguised.
 
 `backend/tests/unit/test_mismatch.py` (T2.2): clean files of every format (with matching names
 and Content-Types) produce no mismatch codes; one or more positive and negative cases per check,
 including the plan's M4 edge rows (marked "edge:"); the full-scope ZIP refinement (real DOCX,
 plain ZIP, corrupt/truncated archive, over-cap listing, partial scope); and a check that every
-code emitted is in the registry with exactly its declared evidence keys. Generated samples are
-checked later by `test_detect_samples.py` (T2.6).
+code emitted is in the registry with exactly its declared evidence keys.
 
 ## Known limitations
 

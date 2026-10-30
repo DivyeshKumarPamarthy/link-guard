@@ -1,0 +1,38 @@
+# LinkGuard development stack: `make dev` (docker compose up --build).
+#
+# Every port is published on 127.0.0.1 only, never as a bare "8000:8000" (decision D18):
+# the backend is anonymous, has open CORS and no rate limits, so it must not be reachable
+# from other machines. backend/tests/unit/test_compose_ports.py fails on any other form.
+#
+# Inside a container the servers listen on 0.0.0.0, because a published port only reaches
+# a process listening on the container's own interface (decision D31). The host side still
+# exposes loopback only.
+
+services:
+  api:
+    build: ./backend
+    environment:
+      LG_PROFILE: dev
+      LG_BIND_HOST: "0.0.0.0"
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  web:
+    build: ./web
+    # The browser runs on the host and calls the API at http://127.0.0.1:8000 (web/src/config.ts).
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173", "--strictPort"]
+    ports:
+      - "127.0.0.1:5173:5173"
+
+  demo:
+    build: ./demo
+    environment:
+      DEMO_BIND_HOST: "0.0.0.0"
+      DEMO_CERTS_DIR: /app/certs
+      DEMO_SAMPLES_DIR: /samples
+    volumes:
+      - ./samples:/samples:ro
+    ports:
+      - "127.0.0.1:8081:8081"
+      - "127.0.0.1:8443:8443"
+      - "127.0.0.1:8444:8444"

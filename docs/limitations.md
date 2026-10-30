@@ -28,7 +28,9 @@ chapter 7 is written from it. "Planned" names the task or phase that changes it.
 | uvicorn's own error logs may include tracebacks with remote data | Possible secrets in the terminal on an unexpected crash | T3.5 |
 | docker-compose not written yet; bind address inside a container is open (D31) | `make dev` is a stub | T2.5 |
 | FastAPI's `/docs` page loads Swagger UI from a CDN | API docs don't open with Wi-Fi off; take report screenshots while online | Self-host the assets if needed for the demo |
-| Demo endpoints `/disguised`, `/cd/{variant}` and `/index` not built yet | Rows needing disguised samples or Content-Disposition variants can't run yet | T1.5 / T2.6 |
+| Generated archives (7z, RAR4, RAR5, OLE) are empty, the Mach-O sample is a header only, the MP4 has no `moov` box | They prove the detector, not that real tools open them; checked against the format specifications and our own tests, not with 7-Zip, unrar or Office | — |
+| The report's "every field" test uses a hand-written row-9 result | Until the real executor exists, a mismatch between it and real backend output would not be caught by the web tests | Captured result in T3.2 (after T2.4) |
+| The sample hash is pinned in `demo/tests/test_make_samples.py` | Any intentional change to the generator must update `EXPECTED_MANIFEST_SHA256` | — |
 | Demo `/reset` prints an exception traceback in the demo server's terminal | Expected: it is how the server drops the connection on purpose | — |
 | The fetcher is complete (T1.2–T2.1) but scans still run on the `MockExecutor` | No real scan contacts a URL yet | T2.4 (executor) |
 | Compression other than gzip/deflate (br, zstd, stacked or corrupt) is not decoded (D61) | Such files are "Unable to verify" | — |
