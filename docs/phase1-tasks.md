@@ -89,7 +89,6 @@ gate: G0 passed 2026-10-19
   mode: auto · verify: `make samples && cd backend && uv run pytest tests/unit/test_detect_samples.py -q && cd ../demo && uv run pytest -q && cd ../web && npm test` · depends: T1.1, T1.5, T1.6
 
 ## Phase B, sprint 3 — Weeks 6–7. Gate G1: all acceptance rows green, feature freeze for Phase B.
-gate: G1 passed 2026-10-29
 
 - [x] **T3.1 Router (A).** Input cleaning, `classify()` pure function, unsupported types, shortened detection, web-page detection (header + sniff), redirect-chain view model; P1: cloud-share hint, homograph flag. Replaces T2.4's pass-through router stub.
   Accept: table-driven tests covering the M3 edge cases in the reference plan.
@@ -109,15 +108,15 @@ gate: G1 passed 2026-10-29
 
 ## Phase B, sprint 4 — Weeks 8–10. Gate G2: Phase 1 review/submission done.
 
-- [x] **T4.1 Bug fixes only.** No new features after G1.
+- [ ] **T4.1 Bug fixes only.** No new features after G1.
   mode: human · verify: `make lint test` · depends: T3.1, T3.2, T3.3, T3.4, T3.5
-- [x] **T4.2 One-command demo.** `make demo` starts everything offline; demo script in `docs/demo-script.md` with expected results for each step.
+- [ ] **T4.2 One-command demo.** `make demo` starts everything offline; demo script in `docs/demo-script.md` with expected results for each step.
   mode: human · verify: none · depends: T4.1
 - [ ] **T4.3 Rehearsal + backup video.** Network off; record.
   mode: human · verify: none · depends: T4.2
-- [x] **T4.4 Phase 1 report.** Fill chapters 3–6 of `docs/report-outline.md` from the module notes: architecture, threat model, what is built, test results (acceptance matrix output), known limitations. Screenshots of every screen in light mode.
+- [ ] **T4.4 Phase 1 report.** Fill chapters 3–6 of `docs/report-outline.md` from the module notes: architecture, threat model, what is built, test results (acceptance matrix output), known limitations. Screenshots of every screen in light mode.
   mode: human · verify: none · depends: T4.1
-- [x] **T4.7 Viva prep.** Each owner presents their module notes to the others; update the viva question bank with any question nobody could answer.
+- [ ] **T4.7 Viva prep.** Each owner presents their module notes to the others; update the viva question bank with any question nobody could answer.
   mode: human · verify: none · depends: T4.4
 - [ ] **T4.5 Fresh-machine check.** Someone who did not write the README starts the stack in under 15 minutes.
   mode: human · verify: none · depends: T4.2

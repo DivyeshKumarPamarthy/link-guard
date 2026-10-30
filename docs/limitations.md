@@ -32,3 +32,11 @@ chapter 7 is written from it. "Planned" names the task or phase that changes it.
 | HEAD is sent with `Connection: close` (D52) | One extra connection (and TLS handshake) per hop | — |
 | ASCII host names may only use letters, digits, `-`, `_` and `.` | A rare but valid name with other characters is refused as `URL_INVALID` | — |
 | Only query values and userinfo passwords are redacted by `safe()` | A secret embedded inside a URL *path* (`/share/<token>/file`) is not redacted in logs | — |
+| The web app's recent-scans list keeps each full pasted URL (query string included) in this browser's `localStorage` (T3.2, P1) | A signed link's secret stays on this computer until the list is cleared; it is never sent anywhere or shown to others | — |
+| uvicorn's own error logs may include tracebacks with remote data | Possible secrets in the terminal on an unexpected crash | T3.5 |
+| Generated archives (7z, RAR4, RAR5, OLE) are empty, the Mach-O sample is a header only, the MP4 has no `moov` box | They prove the detector, not that real tools open them; checked against the format specifications and our own tests, not with 7-Zip, unrar or Office | — |
+| The report's "every field" test uses a hand-written row-9 result | Until the real executor exists, a mismatch between it and real backend output would not be caught by the web tests | Captured result in T3.2 (after T2.4) |
+| The sample hash is pinned in `demo/tests/test_make_samples.py` | Any intentional change to the generator must update `EXPECTED_MANIFEST_SHA256` | — |
+| Verified on macOS (Apple Silicon) only | Windows/Linux setup not yet tried by the team | T4.5 fresh-machine check |
+| A ZIP whose subtype is unconfirmed never raises `TYPE_MISMATCH_OTHER` (D69) | A large (partial-scope) ZIP named `.pdf` gets no name mismatch; the Content-Type check still runs | Tail read of the ZIP directory in Phase D |
+| Mismatch tables cover common extensions and media types only | An extension or Content-Type in no table is "no signal", never a mismatch | Add rows when needed |

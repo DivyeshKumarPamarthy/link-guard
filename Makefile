@@ -2,7 +2,7 @@
 # Targets not built yet exit with an error that names the task that will build them,
 # so a stub can never look like a passing step.
 
-.PHONY: setup dev demo demo-server test test-backend test-web test-demo test-ssrf test-e2e samples \
+.PHONY: setup dev demo-server test test-backend test-web test-demo test-ssrf test-e2e samples \
 	openapi check-openapi lint lint-backend lint-web lint-demo test-loop
 
 setup:  ## Install backend + demo (uv, from uv.lock) and web (npm, from package-lock.json)
@@ -57,9 +57,6 @@ test-loop:  ## Unit tests for the automation loop (scripts/loop.py), standard li
 	uv run --no-project --python 3.12 python -m unittest discover -s scripts/tests -t . -v
 
 dev:  ## docker compose: api :8000, web :5173, demo :8081/:8443/:8444, all on 127.0.0.1 only
-	docker compose up --build
-
-demo: samples  ## Generate samples and start the offline demo stack (T4.2)
 	docker compose up --build
 
 test-ssrf:  ## SSRF table only (fake resolver, socket guard; no network)
