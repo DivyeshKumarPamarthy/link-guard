@@ -10,10 +10,12 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.api.validation import InputError
 from app.contract.models import ErrorBody, ErrorCode, ErrorDetail
 from app.core.log import safe
+from app.orchestrator.scans import ServerBusyError
 
 logger = logging.getLogger("linkguard.api")
 
 INVALID_REQUEST_MESSAGE = 'Send JSON like {"url": "https://..."}.'
+SERVER_BUSY_MESSAGE = "LinkGuard is checking other links. Try again in a few seconds."
 
 # Plain HTTP errors raised by FastAPI/Starlette itself, mapped to our codes.
 _HTTP_ERRORS = {
@@ -33,6 +35,16 @@ def error_response(
 async def _input_error(_request: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, InputError)
     return error_response(400, exc.code, exc.message)
+
+
+async def _busy_error(_request: Request, exc: Exception) -> JSONResponse:
+    assert isinstance(exc, ServerBusyError)
+    return error_response(
+        503,
+        ErrorCode.SERVER_BUSY,
+        SERVER_BUSY_MESSAGE,
+        headers={"Retry-After": str(exc.retry_after_s)},
+    )
 
 
 async def _validation_error(_request: Request, _exc: Exception) -> JSONResponse:
@@ -59,6 +71,7 @@ async def _unexpected_error(_request: Request, exc: Exception) -> JSONResponse:
 
 def install_error_handlers(app: FastAPI) -> None:
     app.add_exception_handler(InputError, _input_error)
+    app.add_exception_handler(ServerBusyError, _busy_error)
     app.add_exception_handler(RequestValidationError, _validation_error)
     app.add_exception_handler(StarletteHTTPException, _http_error)
     app.add_exception_handler(Exception, _unexpected_error)

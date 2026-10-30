@@ -3,7 +3,7 @@
 URLs, filenames and headers come from strangers. Before any of them reaches a log line,
 safe() removes characters that could forge log lines, recolour the terminal or hide text
 (ANSI escapes, newlines, bidi overrides), and replaces URL secrets with REDACTED
-(signed-URL query values, userinfo passwords).
+(signed-URL query values, userinfo passwords), including URLs embedded inside error messages.
 """
 
 import logging
@@ -17,6 +17,9 @@ _HANDLER_NAME = "linkguard"
 
 # ESC [ ... final byte (CSI), and ESC ] ... BEL or ESC \ (OSC, e.g. terminal hyperlinks)
 _ANSI_ESCAPE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b")
+
+# URLs embedded inside larger messages (such as httpx exception text).
+_EMBEDDED_URL = re.compile(r"(?:[a-zA-Z][a-zA-Z0-9+.-]*://|magnet:\?)[^\s'\"<>)\]]+")
 
 # Invisible characters that change how text is displayed: zero-width, bidi marks,
 # embeddings/overrides/isolates, byte-order mark, line/paragraph separators.
@@ -77,7 +80,10 @@ def safe(value: object) -> str:
     text = _strip_unsafe_characters(str(value))
     if _looks_like_url(text):
         return _redact_url(text)
-    return text
+    return _EMBEDDED_URL.sub(
+        lambda m: _redact_url(m.group(0)) if _looks_like_url(m.group(0)) else m.group(0),
+        text,
+    )
 
 
 def setup_logging(level: str = "INFO") -> None:

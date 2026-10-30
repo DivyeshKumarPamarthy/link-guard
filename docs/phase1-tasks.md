@@ -78,7 +78,7 @@ gate: G0 passed 2026-10-19
 - [x] **T2.3 Scorer v1 + explanations (B).** Pure scorer (spec §9), outcome rules, scope, confidence, display verdict, headline (spec §3); golden tests.
   Accept: golden tests for thresholds 29/30/59/60, hard rule, grouping, unable vs risk precedence, partial never shows SAFE.
   mode: auto · verify: `cd backend && uv run pytest tests/golden tests/unit/test_scorer.py -q` · depends: T0.4, T0.5
-- [ ] **T2.4 Orchestrator + in-process executor (B).** Executor interface (JSON-compatible input/output), in-process executor running router → fetcher → detectors as an asyncio background task, `asyncio.Semaphore(LG_MAX_CONCURRENT_SCANS)`, waiting counter → 503 `SERVER_BUSY` above `LG_MAX_WAITING_SCANS`, overall timeout, state transitions persisted, output validated before scoring, `ANALYSIS_ERROR` on exceptions. No dedupe. May call a pass-through router stub; T3.1 replaces it with the real router.
+- [x] **T2.4 Orchestrator + in-process executor (B).** Executor interface (JSON-compatible input/output), in-process executor running router → fetcher → detectors as an asyncio background task, `asyncio.Semaphore(LG_MAX_CONCURRENT_SCANS)`, waiting counter → 503 `SERVER_BUSY` above `LG_MAX_WAITING_SCANS`, overall timeout, state transitions persisted, output validated before scoring, `ANALYSIS_ERROR` on exceptions. No dedupe. May call a pass-through router stub; T3.1 replaces it with the real router.
   Accept: unit tests for busy (503), timeout, exception path; swapping `MockExecutor` for the real one is config only.
   mode: auto · verify: `cd backend && uv run pytest tests/unit/test_orchestrator.py tests/unit/test_api.py -q` · depends: T2.1, T2.2, T2.3
 - [x] **T2.5 Localhost-only exposure (A).** Default bind `127.0.0.1`; docker-compose publishes `127.0.0.1:8000:8000` (and the same for web and demo); README states the backend must not be exposed publicly and why.
@@ -90,19 +90,19 @@ gate: G0 passed 2026-10-19
 
 ## Phase B, sprint 3 — Weeks 6–7. Gate G1: all acceptance rows green, feature freeze for Phase B.
 
-- [ ] **T3.1 Router (A).** Input cleaning, `classify()` pure function, unsupported types, shortened detection, web-page detection (header + sniff), redirect-chain view model; P1: cloud-share hint, homograph flag. Replaces T2.4's pass-through router stub.
+- [x] **T3.1 Router (A).** Input cleaning, `classify()` pure function, unsupported types, shortened detection, web-page detection (header + sniff), redirect-chain view model; P1: cloud-share hint, homograph flag. Replaces T2.4's pass-through router stub.
   Accept: table-driven tests covering the M3 edge cases in the reference plan.
   mode: auto · verify: `cd backend && uv run pytest tests/unit/test_router.py tests/unit/test_orchestrator.py -q` · depends: T1.4, T2.1, T2.4
-- [ ] **T3.2 Wire web to real backend (C).** Polling with backoff, REJECTED / UNSUPPORTED / UNABLE / busy screens, 360 px layout, keyboard and focus, dark mode. P1: localStorage recent-scans list.
+- [x] **T3.2 Wire web to real backend (C).** Polling with backoff, REJECTED / UNSUPPORTED / UNABLE / busy screens, 360 px layout, keyboard and focus, dark mode. P1: localStorage recent-scans list.
   Accept: manual checklist in `docs/` passes; vitest for each screen.
   mode: auto · verify: `cd web && npm run lint && npm run typecheck && npm test` · depends: T1.6, T2.4, T2.6
-- [ ] **T3.3 Acceptance matrix e2e (C).** One pytest per row of spec §12 running the backend against the demo server with the test profile.
+- [x] **T3.3 Acceptance matrix e2e (C).** One pytest per row of spec §12 running the backend against the demo server with the test profile.
   Accept: all 22 rows green in CI with network disabled except loopback.
   mode: pair · verify: `make test-e2e` · depends: T2.4, T2.5, T2.6, T3.1
-- [ ] **T3.4 Contract-gap fixes (B).** Anything integration surfaced; regenerate types; note changes in `decisions.md`.
+- [x] **T3.4 Contract-gap fixes (B).** Anything integration surfaced; regenerate types; note changes in `decisions.md`.
   Accept: `make check-openapi` green.
   mode: auto · verify: `make check-openapi && make lint test` · depends: T3.3
-- [ ] **T3.5 Log and error review (A).** No stack traces in responses; every log call that includes remote data uses `safe()`.
+- [x] **T3.5 Log and error review (A).** No stack traces in responses; every log call that includes remote data uses `safe()`.
   Accept: `backend/tests/integration/test_log_safety.py` runs its own scans against the demo server, captures the logs and finds no raw query values, control characters or body bytes.
   mode: auto · verify: `cd backend && uv run pytest tests/integration/test_log_safety.py -q` · depends: T3.3
 

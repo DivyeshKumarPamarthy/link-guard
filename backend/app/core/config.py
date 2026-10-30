@@ -16,6 +16,7 @@ from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 logger = logging.getLogger("linkguard.config")
 
 Profile = Literal["dev", "test", "demo", "prod"]
+ExecutorKind = Literal["inprocess", "mock"]
 EXEMPTION_PROFILES = ("test", "demo")
 
 
@@ -30,6 +31,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="LG_", frozen=True)
 
     profile: Profile = "dev"
+    executor: ExecutorKind = "inprocess"
 
     # Fetcher limits
     head_fetch_bytes: int = Field(5_242_880, gt=0)
@@ -47,6 +49,7 @@ class Settings(BaseSettings):
     # Scan capacity (decision D17: semaphore + busy guard instead of rate limits)
     max_concurrent_scans: int = Field(4, gt=0)
     max_waiting_scans: int = Field(20, ge=0)
+    busy_retry_after_s: int = Field(5, gt=0)  # Retry-After header on 503 SERVER_BUSY (D23)
 
     # API and storage
     bind_host: str = "127.0.0.1"
