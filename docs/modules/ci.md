@@ -15,6 +15,8 @@ should only be merged when all four are green.
 ## How it works (5–10 lines; the steps you would draw on a whiteboard)
 
 1. **backend**: `uv sync --locked` → `make lint-backend` (ruff check, ruff format --check, mypy strict) → `make test-backend`.
+   `make test-backend` first runs `make samples` (the e2e acceptance matrix and the sample tests
+   need `samples/`, which is generated, never committed), so all 22 acceptance rows run in CI.
 2. Tests cannot use the network: pytest-socket (`--disable-socket --allow-unix-socket`) is in the
    pytest config, so this holds locally too. Unix sockets stay allowed because asyncio uses a socketpair.
 3. **web**: `npm ci` → `make lint-web` (eslint, tsc) → `make test-web` (vitest).

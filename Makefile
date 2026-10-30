@@ -12,7 +12,7 @@ setup:  ## Install backend + demo (uv, from uv.lock) and web (npm, from package-
 
 test: test-backend test-web test-demo test-loop  ## Backend pytest (sockets blocked), web vitest, demo pytest, loop unit tests
 
-test-backend:
+test-backend: samples  ## The e2e matrix and sample tests need samples/ (generated, never committed)
 	cd backend && uv run pytest
 
 test-web:
