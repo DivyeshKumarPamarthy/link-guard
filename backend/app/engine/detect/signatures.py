@@ -6,7 +6,9 @@ format's marker is reported as an executable. Nothing here executes, decompresse
 the bytes: it only compares them with known signatures.
 """
 
+import io
 import struct
+import zipfile
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -183,6 +185,33 @@ def detect_zip(data: bytes, settings: Settings) -> Detection | None:
         )
     type_, label, family = subtype
     return Detection(type_, label, family, CERTAIN, signature)
+
+
+def refine_zip_subtype(
+    detection: Detection, data: bytes, full_scope: bool, settings: Settings | None = None
+) -> Detection:
+    """Prove a ZIP's subtype from its central directory when the whole file was read (D75).
+
+    Spec §7: full scope only, listing only (`namelist()` never opens, reads or extracts an
+    entry), an entry cap, and every exception caught. A crafted or truncated archive simply
+    keeps the head result. Called by the executor after `detect_type`.
+    """
+    settings = settings or get_settings()
+    if not full_scope or detection.type != "zip" or detection.confidence is not UNCONFIRMED:
+        return detection
+    try:
+        with zipfile.ZipFile(io.BytesIO(data)) as archive:
+            names = archive.namelist()
+    except Exception:  # any parsing failure means "not proven", never a crash
+        return detection
+    if len(names) > settings.zip_max_entries:
+        return detection
+    subtype = zip_subtype(names)
+    if subtype is None:
+        # The listing proves there is nothing more specific inside: a plain ZIP.
+        return Detection("zip", "ZIP archive", Family.archive, CERTAIN, detection.signature)
+    type_, label, family = subtype
+    return Detection(type_, label, family, CERTAIN, detection.signature)
 
 
 def detect_7z(data: bytes, settings: Settings) -> Detection | None:

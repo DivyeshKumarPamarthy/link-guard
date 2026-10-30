@@ -38,3 +38,7 @@ chapter 7 is written from it. "Planned" names the task or phase that changes it.
 | HEAD is sent with `Connection: close` (D52) | One extra connection (and TLS handshake) per hop | — |
 | ASCII host names may only use letters, digits, `-`, `_` and `.` | A rare but valid name with other characters is refused as `URL_INVALID` | — |
 | Verified on macOS (Apple Silicon) only | Windows/Linux setup not yet tried by the team | T4.5 fresh-machine check |
+| Look-alike letters (homoglyphs) in file names are not flagged (D72) | `invoice.pdf` spelled with a Cyrillic "o" gets no `EXT_SPOOFED_NAME`; only invisible control/format characters do | — |
+| `EXT_SPOOFED_NAME` flags every Unicode format character, including ZWJ/ZWNJ (U+200D/U+200C) (D72) | Some genuine Indic-script or emoji file names get a false "hidden characters" warning (weight 40) | Tune in Phase 4 if it happens |
+| A ZIP whose subtype is unconfirmed never raises `TYPE_MISMATCH_OTHER` (D69) | A large (partial-scope) ZIP named `.pdf` gets no name mismatch; the Content-Type check still runs | Tail read of the ZIP directory in Phase D |
+| Mismatch tables cover common extensions and media types only | An extension or Content-Type in no table is "no signal", never a mismatch | Add rows when needed |
