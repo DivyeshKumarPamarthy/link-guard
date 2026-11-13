@@ -4,8 +4,6 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import type { ScanResult } from './api/contract.ts'
 import App from './App.tsx'
-import { URL_DISPLAY_CHARS } from './config.ts'
-import { middleTruncate } from './lib/text.ts'
 import { SPOOFED_NAME } from './styleguide/mockData.ts'
 import {
   ACCEPTED,
@@ -49,6 +47,11 @@ function fakeBackend(post: () => Answer, gets: (() => Answer)[] = []) {
 
 const accepted = () => jsonResponse(202, ACCEPTED)
 const done = (result: ScanResult) => () => jsonResponse(200, result)
+
+/** The Details section is collapsed until its button is pressed. */
+function openDetails() {
+  fireEvent.click(screen.getByRole('button', { name: /Details/ }))
+}
 
 function submit(url: string) {
   fireEvent.change(screen.getByLabelText('Link to check'), { target: { value: url } })
@@ -115,6 +118,9 @@ describe('submit and polling', () => {
     expect(within(why).getByText('High')).toBeDefined()
     const hops = screen.getByRole('heading', { name: 'Where the link went' }).parentElement!
     expect(hops.querySelectorAll('li')).toHaveLength(2)
+    // Details is collapsed until the user opens it
+    expect(screen.queryByText('Whole file checked (47 KB)')).toBeNull()
+    openDetails()
     expect(screen.getByText('Whole file checked (47 KB)')).toBeDefined()
     expect(screen.getByText('70 / 100')).toBeDefined()
     expect(screen.getByText('812 ms total, 640 ms fetch')).toBeDefined()
@@ -157,15 +163,15 @@ describe('submit and polling', () => {
     // every hop: URL as text, status, address class
     const hops = screen.getByRole('heading', { name: 'Where the link went' }).parentElement!
     expect(hops.querySelectorAll('li')).toHaveLength(3)
-    // long URLs are shortened in the middle on screen (the full one is behind "Show all")
-    const onScreen = (url: string) => (url.length > URL_DISPLAY_CHARS ? middleTruncate(url, URL_DISPLAY_CHARS) : url)
-    for (const hop of result.redirects) expect(within(hops).getByText(onScreen(hop.url))).toBeDefined()
+    // hop URLs are shown in full, wrapped, as text
+    for (const hop of result.redirects) expect(within(hops).getByText(hop.url)).toBeDefined()
     expect(within(hops).getAllByText('302')).toHaveLength(2)
     expect(within(hops).getByText('200')).toBeDefined()
     expect(within(hops).getAllByText('private')).toHaveLength(3)
 
     // details: final site and address, link type, scope, confidence, score, timings, versions
-    const details = screen.getByText('Details').closest('details')!
+    openDetails()
+    const details = screen.getByRole('heading', { name: /Details/ }).parentElement!
     expect(within(details).getByText('c.demo.test')).toBeDefined()
     expect(within(details).getByText(result.final_url!)).toBeDefined()
     expect(within(details).getByText('Shortened link (redirects to another site)')).toBeDefined()
@@ -181,6 +187,7 @@ describe('submit and polling', () => {
     render(<App />)
     submit(DEMO_DISGUISED_CHAIN.input_url)
     await screen.findByText('Unsafe')
+    openDetails()
     expect(screen.getByText('reputation, pe-structure')).toBeDefined()
   })
 
@@ -212,6 +219,7 @@ describe('result screens', () => {
     expect(await screen.findByText('Unable to verify')).toBeDefined()
     expect(screen.getByText('What you can try')).toBeDefined()
     expect(screen.getByText('Check the link is complete and still works in your browser.')).toBeDefined()
+    openDetails()
     expect(screen.getByText('Nothing was read')).toBeDefined()
     expect(screen.queryByText(/^Safe$/)).toBeNull()
 
@@ -278,7 +286,7 @@ describe('error states', () => {
     submit('https://short.example/abc')
 
     expect(await screen.findByText("Can't reach the LinkGuard server.")).toBeDefined()
-    expect(screen.getByText('Start it with `make dev`, then try again.')).toBeDefined()
+    expect(screen.getByRole('alert').textContent).toContain('Start it with make dev, then try again.')
 
     up = true
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))

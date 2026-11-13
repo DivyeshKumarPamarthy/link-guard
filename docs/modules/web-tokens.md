@@ -1,6 +1,6 @@
 # Module: Web tokens, components and /styleguide (M6, task T0.10)
 
-Owner: Divyesh (track C, D16) · Reviewer: TBD · Phase: A · Last updated: 2026-10-19
+Owner: Divyesh (track C, D16) · Reviewer: TBD · Phase: A · Last updated: 2026-11-13
 
 ## What it does (2–3 sentences, plain language)
 
@@ -18,8 +18,9 @@ shows every state side by side in both themes.
 1. Each colour is a CSS variable (`--lg-paper`), light values on `:root`.
 2. Dark values apply when the system is dark, or inside `data-theme="dark"` (used by `/styleguide`).
 3. `@theme inline` maps them to Tailwind colours, and Tailwind's default palette is removed, so only guide colours exist.
-4. `verdicts.ts` maps each `display_verdict` to its exact label, lucide icon and colour classes.
-5. `HexStrip` splits `first_bytes_hex` into pairs and highlights the `signature` bytes; caption names them.
+4. `verdicts.ts` maps each `display_verdict` to its exact label and colour classes (no icons since D79).
+5. `HexStrip` splits `first_bytes_hex` into pairs, lays them out as two rows of eight cells and highlights the `signature` bytes; caption names them.
+   `buttons.ts` holds the three button looks; `ScopeBar` draws the read / not-read bar for partial scans (D80).
 6. `ClaimedVsActual` shows remote values as text only, with invisible characters shown as escapes (`showInvisible`).
 7. `main.tsx` renders `/styleguide` only when `import.meta.env.DEV`; the production build drops it (verified: 0 occurrences in the bundle).
 
@@ -33,7 +34,7 @@ shows every state side by side in both themes.
 ## How it is tested (test files, acceptance rows it covers)
 
 - `src/theme/contrast.test.ts` (42): computes WCAG contrast from the real `index.css` for every text pair (≥ 4.5:1) and the focus ring and input outline (≥ 3:1), in light and dark; the two dark copies must match; values match the guide.
-- `src/components/components.test.tsx` (17): exact labels plus an icon for all seven verdicts; Safe and No-issues look different; hex highlight on exactly the signature bytes; null-signature caption; hostile `<img onerror>` filename rendered as text; RTL override shown escaped.
+- `src/components/components.test.tsx` (17): exact labels and no icon for all seven verdicts; Safe and No-issues look different; hex highlight on exactly the signature bytes; null-signature caption; hostile `<img onerror>` filename rendered as text; RTL override shown escaped.
 - `src/lib/text.test.ts` (4), `src/styleguide/StyleGuide.test.tsx` (1): every state in both themes.
 - Visual check: headless Chrome screenshots at 1440 px and a true 360 px (iframe); a squeezed icon on wrapped labels was fixed (`shrink-0`).
 
@@ -46,5 +47,5 @@ shows every state side by side in both themes.
 
 - *How does dark mode work?* CSS variables change value under `prefers-color-scheme: dark`; components only use the variable names.
 - *How did you check accessibility?* A test computes WCAG contrast ratios from the real CSS for every pair we use.
-- *How is the verdict shown to colour-blind users?* Always word plus icon, never colour alone.
+- *How is the verdict shown to colour-blind users?* Always by the verdict word, never colour alone; there are no icons (D79).
 - *Why show `\u202E` instead of the real name?* The override character reverses the text and hides the real extension.

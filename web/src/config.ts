@@ -15,5 +15,11 @@ export const URL_DISPLAY_CHARS = 60
 /** Spec §10 (P1): at most this many recent scans are kept in browser localStorage. */
 export const MAX_RECENT_SCANS = 20
 
+/** The home screen lists the demo links (src/demoLinks.ts) only in `vite --mode demo` (npm run dev:demo). */
+export const SHOW_DEMO_LINKS: boolean = import.meta.env.MODE === 'demo'
+
 /** Key used in window.localStorage for the recent-scans list. */
 export const RECENT_SCANS_STORAGE_KEY = 'linkguard.recent_scans'
+
+/** Key used in window.localStorage for the light / dark choice (D81). */
+export const THEME_STORAGE_KEY = 'linkguard.theme'

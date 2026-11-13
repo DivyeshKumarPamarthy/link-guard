@@ -80,7 +80,7 @@ test('tokens match the style guide values', () => {
   expect(light.paper).toBe('#f5f7f9')
   expect(darkSystem.paper).toBe('#0f1720')
   expect(light['unsafe-fg']).toBe('#b3261e')
-  expect(darkSystem['rejected-bg']).toBe('#2a2238')
+  expect(darkSystem['rejected-bg']).toBe('#222d38')
 })
 
 test('line is too faint to be the only outline of an input (why inputs use muted)', () => {

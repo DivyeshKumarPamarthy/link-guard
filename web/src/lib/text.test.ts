@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { hexPairs, middleTruncate, showInvisible } from './text.ts'
+import { formatSize, hexPairs, middleTruncate, showInvisible } from './text.ts'
 
 const RLO = String.fromCodePoint(0x202e)
 const ZWSP = String.fromCodePoint(0x200b)
@@ -35,4 +35,13 @@ test('leaves text at or under the limit unchanged', () => {
 test('splits hex into byte pairs', () => {
   expect(hexPairs('4d5a90')).toEqual(['4d', '5a', '90'])
   expect(hexPairs('')).toEqual([])
+})
+
+test('formatSize uses the backend units: bytes, KB, MB with one decimal, GB', () => {
+  expect(formatSize(1)).toBe('1 byte')
+  expect(formatSize(512)).toBe('512 bytes')
+  expect(formatSize(47 * 1024)).toBe('47 KB')
+  expect(formatSize(5 * 1024 ** 2)).toBe('5 MB')
+  expect(formatSize(195 * 1024 ** 2)).toBe('195 MB')
+  expect(formatSize(1.5 * 1024 ** 3)).toBe('1.5 GB')
 })

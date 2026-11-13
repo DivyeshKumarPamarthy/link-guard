@@ -31,8 +31,8 @@
   --lg-unsafe-bg: #fbe7e5;
   --lg-unable-fg: #4f5d6c;
   --lg-unable-bg: #eef1f4;
-  --lg-rejected-fg: #6a4c93;
-  --lg-rejected-bg: #efeaf6;
+  --lg-rejected-fg: #13202e;
+  --lg-rejected-bg: #eef1f4;
   --lg-unsupported-fg: #4f5d6c;
   --lg-unsupported-bg: transparent;
 }
@@ -57,8 +57,8 @@
     --lg-unsafe-bg: #3a1a18;
     --lg-unable-fg: #a4b0bc;
     --lg-unable-bg: #222d38;
-    --lg-rejected-fg: #c2a6e8;
-    --lg-rejected-bg: #2a2238;
+    --lg-rejected-fg: #e6ebf0;
+    --lg-rejected-bg: #222d38;
     --lg-unsupported-fg: #a4b0bc;
     --lg-unsupported-bg: transparent;
   }
@@ -83,8 +83,8 @@
   --lg-unsafe-bg: #3a1a18;
   --lg-unable-fg: #a4b0bc;
   --lg-unable-bg: #222d38;
-  --lg-rejected-fg: #c2a6e8;
-  --lg-rejected-bg: #2a2238;
+  --lg-rejected-fg: #e6ebf0;
+  --lg-rejected-bg: #222d38;
   --lg-unsupported-fg: #a4b0bc;
   --lg-unsupported-bg: transparent;
 }
@@ -122,22 +122,30 @@
   --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
-  /* Type scale (px / line-height) from the guide */
+  /* Type scale (size / line-height) from the guide (D80) */
   --text-small: 13px;
-  --text-small--line-height: 18px;
+  --text-small--line-height: 20px;
+  --text-label: 14px;
+  --text-label--line-height: 20px;
   --text-body: 16px;
   --text-body--line-height: 24px;
-  --text-section: 20px;
+  --text-lead: 18px;
+  --text-lead--line-height: 26px;
+  --text-section: 22px;
   --text-section--line-height: 28px;
-  --text-verdict: 28px;
-  --text-verdict--line-height: 34px;
-  --text-title: 40px;
-  --text-title--line-height: 46px;
+  --text-title: 30px;
+  --text-title--line-height: 36px;
+  /* The verdict word grows with the screen: 30 px on a phone, 42 px on a laptop */
+  --text-verdict: clamp(30px, 8vw, 42px);
+  --text-verdict--line-height: 1.12;
+  /* The claimed name and the detected type in "Claimed vs actual" */
+  --text-evidence: 21px;
+  --text-evidence--line-height: 28px;
 
-  /* Radius: 6 px controls, 10 px panels, pill badges */
-  --radius-control: 6px;
-  --radius-panel: 10px;
-  --radius-badge: 999px;
+  /* Radius: 3 px badges and byte cells, 4 px controls, 6 px panels */
+  --radius-badge: 3px;
+  --radius-control: 4px;
+  --radius-panel: 6px;
 
   /* Content column */
   --container-content: 720px;

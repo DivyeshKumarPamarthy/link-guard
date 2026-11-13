@@ -1,42 +1,42 @@
-// "Why": one line per finding, severity word + icon, message from the backend registry.
-// Every row also shows its reason code, so a code this app has never heard of still renders
+// "Why": one row per finding, severity word, message from the backend registry, then the
+// reason code. Every row shows its code, so a code this app has never heard of still renders
 // as code + message (the generic card, spec §2) with no special list to keep in sync.
-import { Circle, CircleDot, type LucideIcon } from 'lucide-react'
 import type { Reason } from '../api/contract.ts'
 import { showInvisible } from '../lib/text.ts'
 
-const SEVERITY: Record<Reason['severity'], { label: string; Icon: LucideIcon }> = {
-  high: { label: 'High', Icon: CircleDot },
-  medium: { label: 'Medium', Icon: CircleDot },
-  low: { label: 'Low', Icon: CircleDot },
-  info: { label: 'Info', Icon: Circle },
+const SEVERITY: Record<Reason['severity'], string> = {
+  high: 'High',
+  medium: 'Medium',
+  low: 'Low',
+  info: 'Info',
 }
 
 export function ReasonList({ reasons }: { reasons: Reason[] }) {
-  if (reasons.length === 0) return null
   return (
-    <section aria-labelledby="why">
-      <h2 id="why" className="text-section font-semibold">
+    <section aria-labelledby="why" className="space-y-2.5">
+      <h2 id="why" className="text-label font-semibold text-muted">
         Why
       </h2>
-      <ul className="mt-2 space-y-2">
-        {reasons.map((reason, i) => {
-          // A severity from a newer backend falls back to the quietest style.
-          const { label, Icon } = SEVERITY[reason.severity] ?? SEVERITY.info
-          return (
-            <li key={i} className="flex gap-3">
-              <span className="inline-flex w-20 shrink-0 items-center gap-1.5 font-medium text-muted">
-                <Icon aria-hidden="true" size={14} strokeWidth={2} className="shrink-0" />
-                {label}
+      {reasons.length === 0 ? (
+        <p className="border-y border-line py-3">No findings.</p>
+      ) : (
+        <ul className="border-b border-line">
+          {reasons.map((reason, i) => (
+            <li key={i} className="grid grid-cols-[72px_minmax(0,1fr)] gap-x-3 gap-y-1 border-t border-line py-3">
+              {/* A severity from a newer backend falls back to the quietest word. */}
+              <span className="text-label leading-[1.7] font-semibold">
+                {SEVERITY[reason.severity] ?? SEVERITY.info}
               </span>
-              <span className="min-w-0 max-w-prose break-words">
-                {showInvisible(reason.message)}{' '}
-                <span className="font-mono text-small text-muted">{showInvisible(reason.code)}</span>
-              </span>
+              <div className="flex min-w-0 flex-col gap-1">
+                <span className="break-words">{showInvisible(reason.message)}</span>
+                <span className="font-mono text-xs leading-normal break-all text-muted">
+                  {showInvisible(reason.code)}
+                </span>
+              </div>
             </li>
-          )
-        })}
-      </ul>
+          ))}
+        </ul>
+      )}
     </section>
   )
 }

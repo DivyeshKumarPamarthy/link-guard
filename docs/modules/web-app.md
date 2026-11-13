@@ -11,7 +11,7 @@ report, unable to verify, rejected, unsupported, or an error/busy screen.
 
 ## Inputs and outputs
 - Input: the text typed by the user; `202` / `ScanResult` / `ErrorBody` JSON from `POST /api/scans` and `GET /api/scans/{id}`.
-- Output: rendered screens only. Nothing is stored in the browser.
+- Output: rendered screens. The browser keeps only the recent-scans list and the light / dark choice in localStorage.
 
 ## How it works (5–10 lines; the steps you would draw on a whiteboard)
 
@@ -23,6 +23,8 @@ report, unable to verify, rejected, unsupported, or an error/busy screen.
    The report (T2.6, spec §10): claimed vs actual shows the claimed name with where it came from (`name_source`), the content type, the detected label with its confidence, and the 16-byte hex strip with the signature bytes highlighted; Details shows final site and address, link type, what was read, signals not checked, confidence, score, timings and engine/rules versions.
 6. URLs are mono text via `UrlText`: middle-truncated with "Show all", "Copy URL", never a link.
 7. All remote text goes through React text nodes and `showInvisible()`, so HTML stays text and bidi characters show as `\u202E` (the escape text, never the character itself).
+8. Demo links (D79): `src/demoLinks.ts` lists nine demo links, one per demo scenario. `App` passes them to `HomeScreen` only when `SHOW_DEMO_LINKS` is true, which is `import.meta.env.MODE === 'demo'` (`npm run dev:demo`). Each row is a button that calls the normal `onSubmit`, so a demo link is scanned exactly like a pasted one.
+9. Theme button (D81): the shared header in `App.tsx` holds a "Dark mode" / "Light mode" button on every screen. `lib/theme.ts` picks the start theme (saved choice, else the system setting), sets `data-theme` on `<html>` and saves the choice in localStorage; `main.tsx` applies it before the first render so there is no flash.
 
 ## Why it is designed this way (the decision and the simpler/harder alternative you rejected)
 
@@ -37,6 +39,9 @@ report, unable to verify, rejected, unsupported, or an error/busy screen.
 
 - `src/api/poll.test.ts`: polls until done; backoff sequence 500, 750, 1125, 1688, 2000…; ceiling cap; an error stops polling.
 - `src/api/client.test.ts`: POST body and URL; unknown fields ignored; 400 input codes; unreachable; 503 busy; 500 / other 400 / non-JSON / 404 / schema 2.0 → server error.
+- `src/screens/HomeScreen.test.tsx`: demo links are off outside demo mode, hidden when none are passed, listed as buttons (never links) with their URLs, one click submits the URL, and every link points only at the demo server, the metadata address or a magnet link.
+- `src/screens/ReportScreen.test.tsx` (D80): the read / not-read bar (shown for a partial scan with a known size, hidden when the size is unknown or the verdict differs), "No findings.", the Details toggle with `aria-expanded`, and the tinted Actual cell only when the detected type is the problem.
+- `src/lib/theme.test.tsx` (D81): system setting used without a saved choice; a saved choice wins and junk is ignored; the button names the other mode, switches `data-theme` and saves it; it sits in the shared header.
 - `src/App.test.tsx` (fake `fetch`, no backend): submit → checking → report; every report section; URLs never clickable; check another link; unable (hints, check again, never "Safe"); rejected (no details); unsupported (names the type); unknown reason code; inline 400 errors keep focus; unreachable + try again; busy without auto-retry; 500 on submit and while polling; hostile filename `<img src=x onerror=alert(1)>` rendered as text; hostile URL, headline and reason text; RTL override escaped.
 - `src/App.test.tsx` (T2.6): "renders every field of a real result": acceptance row 9 (2-hop chain to the disguised hello PE) checked field by field, including the exact hex bytes and which two are highlighted; unchecked signals listed in Details.
 - `src/screens/hints.test.ts`, `src/lib/text.test.ts` (middle truncation).
@@ -56,5 +61,5 @@ report, unable to verify, rejected, unsupported, or an error/busy screen.
 - *How do you stop XSS from a filename like `<img onerror>`?* React puts it in a text node, never HTML; we never use `dangerouslySetInnerHTML`; a test checks no `<img>` appears.
 - *Why poll instead of WebSockets?* The contract is async with polling (D3); it is simple and works the same for the future extension.
 - *What happens if the server is down?* `fetch` throws, we show "Can't reach the LinkGuard server. Start it with `make dev`…" and a "Try again" button.
-- *Why is the web app not deciding "Safe"?* The backend computes `display_verdict` (D4); the web only maps it to words, icon and colour.
+- *Why is the web app not deciding "Safe"?* The backend computes `display_verdict` (D4); the web only maps it to words and colour.
 - *Why does polling back off?* To ask often at first (fast scans feel instant) but not hammer the server during slow scans.
