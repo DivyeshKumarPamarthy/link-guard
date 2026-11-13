@@ -1,16 +1,25 @@
-// The top of a report: verdict word + icon on the verdict's tint, then the headline.
+// The top of a report: the verdict word on the verdict's tint, then the headline.
+// `children` is for extra lines inside the band, such as the read / not-read bar.
+import { useId, type ReactNode } from 'react'
 import type { DisplayVerdict } from '../api/contract.ts'
 import { VERDICTS } from './verdicts.ts'
 
-export function VerdictBand({ verdict, headline }: { verdict: DisplayVerdict; headline: string }) {
-  const { label, Icon, text, tint } = VERDICTS[verdict]
+interface Props {
+  verdict: DisplayVerdict
+  headline: string
+  children?: ReactNode
+}
+
+export function VerdictBand({ verdict, headline, children }: Props) {
+  const { label, text, tint, body } = VERDICTS[verdict]
+  const wordId = useId() // unique even when /styleguide shows all seven bands
   return (
-    <div className={`animate-verdict-in rounded-panel p-4 md:p-6 ${tint}`}>
-      <p className={`flex items-center gap-2 text-verdict font-semibold ${text}`}>
-        <Icon aria-hidden="true" size={28} strokeWidth={2} className="shrink-0" />
+    <section aria-labelledby={wordId} className={`animate-verdict-in space-y-3 rounded-panel p-7 ${tint}`}>
+      <h1 id={wordId} className={`text-verdict font-semibold tracking-[-0.015em] break-words ${text}`}>
         {label}
-      </p>
-      <p className="mt-1 max-w-prose text-ink">{headline}</p>
-    </div>
+      </h1>
+      <p className={`text-lead break-words ${body}`}>{headline}</p>
+      {children}
+    </section>
   )
 }

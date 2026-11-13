@@ -90,6 +90,6 @@ URL shorteners and malicious redirects.
 | How do you stop the scanner being used to attack your own network? | SSRF checks on resolved IPs at every hop; demo exemptions only exact host:port in test/demo profiles, refused at startup otherwise |
 | What stops a wrong "Safe"? | Contract validator refuses plain SAFE for partial or low-confidence scans; crashes become Unable to verify (ANALYSIS_ERROR) |
 | How do backend and web app agree on the data format? | Pydantic models → OpenAPI → generated TypeScript types; CI fails if they drift |
-| Is the UI accessible? | Word + icon for every verdict; contrast computed from the real CSS in tests (WCAG AA); keyboard focus ring |
+| Is the UI accessible? | The verdict word for every verdict, never colour alone; contrast computed from the real CSS in tests (WCAG AA); keyboard focus ring |
 | What is a "Trojan Source" attack and could it affect your code? | Hidden bidi characters make code read differently from how it runs; a test fails if any source file contains one |
 | How would you extend it? | More analyzers behind the same findings interface; run scans in separate containers |

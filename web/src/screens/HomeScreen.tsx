@@ -1,9 +1,12 @@
-// Screen 1: title, one-line explanation, link input, "Check link", "What we check",
-// and the localStorage recent-scans list below "What we check" (spec §10 P1, D33).
+// Screen 1: title, one-line explanation, link input, "Check link", the demo links (demo mode
+// only), "What we check", and the localStorage recent-scans list (spec §10 P1, D33).
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { UrlText } from '../components/LongText.tsx'
+import { primaryButton, smallButton } from '../components/buttons.ts'
 import { VerdictBadge } from '../components/VerdictBadge.tsx'
+import { URL_DISPLAY_CHARS } from '../config.ts'
+import type { DemoLink } from '../demoLinks.ts'
 import type { RecentScan } from '../lib/recentScans.ts'
+import { middleTruncate, showInvisible } from '../lib/text.ts'
 
 interface Props {
   initialUrl: string
@@ -13,6 +16,8 @@ interface Props {
   recentScans?: RecentScan[]
   onClearRecent?: () => void
   onSelectRecent?: (item: RecentScan) => void
+  /** Ready-made demo links; App passes them only in demo mode (SHOW_DEMO_LINKS). */
+  demoLinks?: DemoLink[]
 }
 
 const WHAT_WE_CHECK = [
@@ -21,6 +26,8 @@ const WHAT_WE_CHECK = [
   'Whether the address is safe to contact',
 ]
 
+const sectionLabel = 'text-label font-semibold text-muted'
+
 export function HomeScreen({
   initialUrl,
   inputError,
@@ -28,6 +35,7 @@ export function HomeScreen({
   recentScans = [],
   onClearRecent,
   onSelectRecent,
+  demoLinks = [],
 }: Props) {
   const [url, setUrl] = useState(initialUrl)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -43,91 +51,113 @@ export function HomeScreen({
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-title font-semibold">LinkGuard</h1>
-        <p className="mt-2 max-w-prose">Check a download link before you open the file.</p>
-      </div>
+    <div className="space-y-10">
+      <header className="space-y-2">
+        <h1 className="text-title font-semibold tracking-[-0.01em]">LinkGuard</h1>
+        <p className="text-[17px] leading-normal text-muted">Check a download link before you open the file.</p>
+      </header>
 
-      <form onSubmit={submit} noValidate>
-        <label htmlFor="link" className="font-medium">
+      <form onSubmit={submit} noValidate className="space-y-2">
+        <label htmlFor="link" className="block text-label font-semibold">
           Link to check
         </label>
-        <div className="mt-1 flex flex-col gap-2 sm:flex-row">
+        <div className="flex flex-wrap gap-2">
           <input
             id="link"
             ref={inputRef}
             type="text"
             inputMode="url"
             autoComplete="off"
+            autoCapitalize="off"
             spellCheck={false}
             placeholder="https://…"
             value={url}
             onChange={(event) => setUrl(event.target.value)}
             aria-invalid={inputError !== null}
             aria-describedby={inputError ? 'link-error' : undefined}
-            className="min-w-0 flex-1 rounded-control border border-muted bg-surface px-3 py-2 font-mono"
+            className="h-12 min-w-0 flex-[1_1_260px] rounded-control border border-muted bg-surface px-3.5 font-mono text-ink placeholder:text-muted"
           />
-          <button
-            type="submit"
-            className="rounded-control bg-brand px-4 py-2 font-medium text-surface hover:opacity-90"
-          >
+          <button type="submit" className={primaryButton}>
             Check link
           </button>
         </div>
         {inputError && (
-          <p id="link-error" className="mt-1 text-small text-unsafe-fg">
+          <p id="link-error" role="alert" className="text-label font-semibold">
             {inputError}
           </p>
         )}
       </form>
 
-      <section aria-labelledby="what-we-check">
-        <h2 id="what-we-check" className="text-section font-semibold">
+      {demoLinks.length > 0 && (
+        <section aria-labelledby="demo-links" className="rounded-panel border border-line">
+          <div className="space-y-1 px-4 py-3.5">
+            <h2 id="demo-links" className={sectionLabel}>
+              Demo links
+            </h2>
+            <p className="text-small text-muted">
+              Shown in demo mode only. Each one points at the local demo server and is checked for real.
+            </p>
+          </div>
+          <ul>
+            {demoLinks.map((link) => (
+              <li key={link.url} className="border-t border-line">
+                <button
+                  type="button"
+                  onClick={() => onSubmit(link.url)}
+                  className="flex min-h-11 w-full cursor-pointer flex-col gap-0.75 px-4 py-2.5 text-left"
+                >
+                  <span className="text-label">{link.label}</span>
+                  <span className="font-mono text-xs leading-normal break-all text-muted">{link.url}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section aria-labelledby="what-we-check" className="space-y-2.5">
+        <h2 id="what-we-check" className={sectionLabel}>
           What we check
         </h2>
-        <ul className="mt-2 space-y-1">
+        <ul className="border-b border-line">
           {WHAT_WE_CHECK.map((line) => (
-            <li key={line}>{line}</li>
+            <li key={line} className="border-t border-line py-2.5">
+              {line}
+            </li>
           ))}
         </ul>
       </section>
 
       {recentScans.length > 0 && (
-        <section aria-labelledby="recent-scans">
-          <div className="flex items-baseline justify-between gap-4">
-            <h2 id="recent-scans" className="text-section font-semibold">
+        <section aria-labelledby="recent-scans" className="space-y-2.5">
+          <div className="flex items-center justify-between gap-3">
+            <h2 id="recent-scans" className={sectionLabel}>
               Recent scans
             </h2>
             {onClearRecent && (
               <button
                 type="button"
                 onClick={onClearRecent}
-                className="text-small font-medium text-brand hover:underline"
+                className="min-h-11 cursor-pointer px-1 text-label underline underline-offset-3"
               >
                 Clear
               </button>
             )}
           </div>
-          <ul className="mt-2 space-y-2">
+          <ul>
             {recentScans.map((item) => (
-              <li
-                key={item.scan_id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-panel border border-line bg-surface p-3"
-              >
-                <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <li key={item.scan_id} className="flex flex-col gap-2 border-t border-line py-3">
+                <div className="flex items-center justify-between gap-3">
                   <VerdictBadge verdict={item.display_verdict} />
-                  <UrlText url={item.url} />
+                  {onSelectRecent && (
+                    <button type="button" onClick={() => onSelectRecent(item)} className={smallButton}>
+                      Check again
+                    </button>
+                  )}
                 </div>
-                {onSelectRecent && (
-                  <button
-                    type="button"
-                    onClick={() => onSelectRecent(item)}
-                    className="rounded-control border border-line bg-surface px-3 py-1 text-small font-medium text-brand"
-                  >
-                    Check again
-                  </button>
-                )}
+                <span className="font-mono text-small break-all">
+                  {middleTruncate(showInvisible(item.url), URL_DISPLAY_CHARS)}
+                </span>
               </li>
             ))}
           </ul>

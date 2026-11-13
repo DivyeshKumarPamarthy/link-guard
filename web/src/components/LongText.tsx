@@ -1,13 +1,12 @@
-// A remote URL shown as mono text: never a link, invisible characters escaped, long values
-// shortened in the middle with a "Show all" button, and a "Copy URL" button (style guide).
+// The link the user pasted, at the top of a report: mono text, never a link, invisible
+// characters escaped, long values shortened in the middle, with "Copy URL" and (for long
+// links) "Show all" buttons underneath (style guide).
 import { useState } from 'react'
 import { URL_DISPLAY_CHARS } from '../config.ts'
 import { middleTruncate, showInvisible } from '../lib/text.ts'
+import { smallButton } from './buttons.ts'
 
-const buttonClass =
-  'rounded-control border border-line px-2 py-0.5 text-small font-medium text-brand hover:bg-paper'
-
-export function UrlText({ url }: { url: string }) {
+export function UrlText({ url, label }: { url: string; label: string }) {
   const [expanded, setExpanded] = useState(false)
   const [copied, setCopied] = useState(false)
   const shown = showInvisible(url)
@@ -24,18 +23,28 @@ export function UrlText({ url }: { url: string }) {
   }
 
   return (
-    <span className="inline-flex min-w-0 flex-wrap items-center gap-2">
-      <span className="min-w-0 break-all font-mono">
-        {expanded || !isLong ? shown : middleTruncate(shown, URL_DISPLAY_CHARS)}
-      </span>
-      {isLong && (
-        <button type="button" className={buttonClass} onClick={() => setExpanded(!expanded)}>
-          {expanded ? 'Show less' : 'Show all'}
+    <div className="space-y-2">
+      <p className="text-label leading-relaxed text-muted">
+        {label}{' '}
+        <span className="font-mono text-small break-all text-ink">
+          {expanded || !isLong ? shown : middleTruncate(shown, URL_DISPLAY_CHARS)}
+        </span>
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" className={smallButton} onClick={copy}>
+          {copied ? 'Copied' : 'Copy URL'}
         </button>
-      )}
-      <button type="button" className={buttonClass} onClick={copy}>
-        {copied ? 'Copied' : 'Copy URL'}
-      </button>
-    </span>
+        {isLong && (
+          <button
+            type="button"
+            className={smallButton}
+            aria-expanded={expanded}
+            onClick={() => setExpanded(!expanded)}
+          >
+            {expanded ? 'Show less' : 'Show all'}
+          </button>
+        )}
+      </div>
+    </div>
   )
 }

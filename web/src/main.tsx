@@ -8,6 +8,10 @@ import '@fontsource/ibm-plex-mono/400.css'
 import '@fontsource/ibm-plex-mono/500.css'
 import './index.css'
 import App from './App.tsx'
+import { applyTheme, initialTheme } from './lib/theme.ts'
+
+// Set light or dark before the first paint, so the page never flashes the wrong colours.
+applyTheme(initialTheme(), false)
 
 const root = createRoot(document.getElementById('root')!)
 

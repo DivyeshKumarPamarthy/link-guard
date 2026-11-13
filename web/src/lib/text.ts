@@ -38,3 +38,16 @@ export function middleTruncate(text: string, max: number): string {
 export function hexPairs(hex: string): string[] {
   return hex.match(/.{2}/g) ?? []
 }
+
+/**
+ * Human size with 1024-based units: "512 bytes", "47 KB", "5 MB", "1.5 GB". The same rules as
+ * the backend's format_size (backend/app/engine/scoring/scope.py), so the scope bar's sizes
+ * match the scope label the backend writes.
+ */
+export function formatSize(n: number): string {
+  const oneDecimal = (x: number) => String(Math.round(x * 10) / 10)
+  if (n < 1024) return n === 1 ? '1 byte' : `${n} bytes`
+  if (n < 1024 ** 2) return `${Math.round(n / 1024)} KB`
+  if (n < 1024 ** 3) return `${oneDecimal(n / 1024 ** 2)} MB`
+  return `${oneDecimal(n / 1024 ** 3)} GB`
+}

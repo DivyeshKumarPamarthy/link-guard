@@ -12,9 +12,12 @@ export function CheckingScreen({ url }: { url: string }) {
   }, [])
 
   return (
-    <div className="space-y-2">
-      <p className="text-section font-semibold">Checking… {seconds} s</p>
-      <p className="break-all font-mono text-muted">{middleTruncate(showInvisible(url.trim()), URL_DISPLAY_CHARS)}</p>
+    <div className="space-y-3 border-y border-line py-7">
+      {/* tabular-nums keeps the line from jiggling as the seconds tick */}
+      <h1 className="text-title font-semibold tracking-[-0.01em] tabular-nums">Checking… {seconds} s</h1>
+      <p className="font-mono text-label leading-relaxed break-all text-muted">
+        {middleTruncate(showInvisible(url.trim()), URL_DISPLAY_CHARS)}
+      </p>
     </div>
   )
 }

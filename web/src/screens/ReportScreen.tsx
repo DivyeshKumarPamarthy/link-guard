@@ -1,10 +1,13 @@
 // Screens 3–6: the result. Rendered from display_verdict only (D4), never recomputed here.
 // Every remote value is React text (escaped), so a hostile filename or URL can't become HTML.
+import { useState } from 'react'
 import type { ScanResult } from '../api/contract.ts'
+import { primaryButton, secondaryButton } from '../components/buttons.ts'
 import { ClaimedVsActual } from '../components/ClaimedVsActual.tsx'
 import { UrlText } from '../components/LongText.tsx'
 import { ReasonList } from '../components/ReasonList.tsx'
 import { RedirectList } from '../components/RedirectList.tsx'
+import { ScopeBar } from '../components/ScopeBar.tsx'
 import { VerdictBand } from '../components/VerdictBand.tsx'
 import { showInvisible } from '../lib/text.ts'
 import { hintsFor } from './hints.ts'
@@ -15,9 +18,6 @@ interface Props {
   onHome: () => void
 }
 
-const primaryButton = 'rounded-control bg-brand px-4 py-2 font-medium text-surface hover:opacity-90'
-const secondaryButton = 'rounded-control border border-line bg-surface px-4 py-2 font-medium text-brand'
-
 const CONFIDENCE = { high: 'High', medium: 'Medium', low: 'Low' } as const
 
 const LINK_TYPE: Record<string, string> = {
@@ -25,59 +25,74 @@ const LINK_TYPE: Record<string, string> = {
   shortened: 'Shortened link (redirects to another site)',
 }
 
-/** Collapsed facts for the curious: where it ended, what was read, confidence, score, timings, versions. */
-function Details({ result }: { result: ScanResult }) {
-  const timings = result.timings_ms
-  const rows: [string, string][] = []
-  if (result.link_type) rows.push(['Link type', LINK_TYPE[result.link_type] ?? result.link_type])
-  rows.push(['What was read', result.scope?.label ?? 'Nothing was read'])
+/** One row of the Details list: a label and a value; `mono` for values the user may copy. */
+interface DetailRow {
+  name: string
+  value: string
+  mono?: boolean
+}
+
+function detailRows(result: ScanResult): DetailRow[] {
+  const rows: DetailRow[] = []
+  if (result.display_host) {
+    // IDN hosts show both forms (spec §10).
+    const punycode =
+      result.punycode_host && result.punycode_host !== result.display_host
+        ? ` (${showInvisible(result.punycode_host)})`
+        : ''
+    rows.push({ name: 'Final site', value: showInvisible(result.display_host) + punycode, mono: true })
+  }
+  if (result.final_url) rows.push({ name: 'Final address', value: showInvisible(result.final_url), mono: true })
+  if (result.link_type) rows.push({ name: 'Link type', value: LINK_TYPE[result.link_type] ?? result.link_type })
+  rows.push({ name: 'What was read', value: result.scope?.label ?? 'Nothing was read' })
   // Checks that could not run for this scan (spec §2); empty in Phase 1 unless something failed.
   if (result.unavailable_signals.length > 0) {
-    rows.push(['Not checked', result.unavailable_signals.map(showInvisible).join(', ')])
+    rows.push({ name: 'Not checked', value: result.unavailable_signals.map(showInvisible).join(', ') })
   }
-  if (result.confidence) rows.push(['Confidence', CONFIDENCE[result.confidence] ?? result.confidence])
-  if (result.score !== null) rows.push(['Score', `${result.score} / 100`])
-  if (timings) {
-    rows.push([
-      'Timings',
-      Object.entries(timings)
-        .map(([name, ms]) => `${ms} ms ${name}`)
-        .join(', '),
-    ])
+  if (result.confidence) rows.push({ name: 'Confidence', value: CONFIDENCE[result.confidence] ?? result.confidence })
+  if (result.score !== null) rows.push({ name: 'Score', value: `${result.score} / 100` })
+  if (result.timings_ms) {
+    const timings = Object.entries(result.timings_ms).map(([name, ms]) => `${ms} ms ${name}`)
+    rows.push({ name: 'Timings', value: timings.join(', ') })
   }
-  rows.push(['Engine / rules', `${result.engine_version} / ${result.rules_version}`])
+  rows.push({ name: 'Engine / rules', value: `${result.engine_version} / ${result.rules_version}` })
+  return rows
+}
 
+/** Collapsed facts for the curious: where it ended, what was read, confidence, score, timings, versions. */
+function Details({ result }: { result: ScanResult }) {
+  const [open, setOpen] = useState(false)
   return (
-    <details className="rounded-panel border border-line bg-surface p-4">
-      <summary className="cursor-pointer font-medium">Details</summary>
-      <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-6 gap-y-2">
-        {result.display_host && (
-          <>
-            <dt className="font-medium text-muted">Final site</dt>
-            <dd className="min-w-0 break-all font-mono">
-              {showInvisible(result.display_host)}
-              {/* IDN hosts show both forms (spec §10). */}
-              {result.punycode_host && result.punycode_host !== result.display_host &&
-                ` (${showInvisible(result.punycode_host)})`}
-            </dd>
-          </>
+    <section aria-labelledby="details-heading" className="border-y border-line">
+      <h2 id="details-heading">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls="details-list"
+          onClick={() => setOpen(!open)}
+          className="flex min-h-12 w-full cursor-pointer items-center justify-between gap-3 text-left font-semibold"
+        >
+          <span>Details</span>
+          <span className="text-label font-normal text-muted">{open ? 'Hide' : 'Show'}</span>
+        </button>
+      </h2>
+      <div id="details-list">
+        {open && (
+          <dl className="pb-2">
+            {detailRows(result).map((row) => (
+              <div
+                key={row.name}
+                className="grid grid-cols-[minmax(96px,168px)_minmax(0,1fr)] gap-3 border-t border-line py-2.25 text-label leading-normal"
+              >
+                <dt className="text-muted">{row.name}</dt>
+                {/* Hosts and URLs may break anywhere; words only at spaces. */}
+                <dd className={`min-w-0 ${row.mono ? 'font-mono break-all' : 'break-words'}`}>{row.value}</dd>
+              </div>
+            ))}
+          </dl>
         )}
-        {result.final_url && (
-          <>
-            <dt className="font-medium text-muted">Final address</dt>
-            <dd className="min-w-0">
-              <UrlText url={result.final_url} />
-            </dd>
-          </>
-        )}
-        {rows.map(([name, value]) => (
-          <div key={name} className="contents">
-            <dt className="font-medium text-muted">{name}</dt>
-            <dd className="min-w-0">{value}</dd>
-          </div>
-        ))}
-      </dl>
-    </details>
+      </div>
+    </section>
   )
 }
 
@@ -87,28 +102,15 @@ export function ReportScreen({ result, onCheckAgain, onHome }: Props) {
   const headline = showInvisible(result.headline ?? '')
   const reasons = result.reasons ?? []
   const isScanned = verdict !== 'REJECTED' && verdict !== 'UNSUPPORTED'
+  const isUnable = verdict === 'UNABLE_TO_VERIFY'
 
   return (
     <div className="space-y-8">
-      <VerdictBand verdict={verdict} headline={headline} />
+      <VerdictBand verdict={verdict} headline={headline}>
+        {verdict === 'NO_ISSUES_IN_CHECKED_PART' && result.scope && <ScopeBar scope={result.scope} />}
+      </VerdictBand>
 
-      <p className="flex flex-wrap items-center gap-2 text-small text-muted">
-        <span>Link checked:</span>
-        <UrlText url={result.input_url} />
-      </p>
-
-      {verdict === 'UNABLE_TO_VERIFY' && (
-        <section aria-labelledby="what-you-can-try">
-          <h2 id="what-you-can-try" className="text-section font-semibold">
-            What you can try
-          </h2>
-          <ul className="mt-2 max-w-prose space-y-1">
-            {hintsFor(reasons.map((r) => r.code)).map((hint) => (
-              <li key={hint}>{hint}</li>
-            ))}
-          </ul>
-        </section>
-      )}
+      <UrlText url={result.input_url} label="Link checked:" />
 
       {verdict === 'REJECTED' && (
         <p className="max-w-prose">
@@ -119,20 +121,32 @@ export function ReportScreen({ result, onCheckAgain, onHome }: Props) {
 
       {isScanned && result.file && <ClaimedVsActual file={result.file} verdict={verdict} />}
       {isScanned && <ReasonList reasons={reasons} />}
+
+      {isUnable && (
+        <section aria-labelledby="what-you-can-try" className="space-y-2.5">
+          <h2 id="what-you-can-try" className="text-label font-semibold text-muted">
+            What you can try
+          </h2>
+          <ul className="border-b border-line">
+            {hintsFor(reasons.map((r) => r.code)).map((hint) => (
+              <li key={hint} className="border-t border-line py-3">
+                {hint}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <RedirectList hops={result.redirects ?? []} />
       {isScanned && <Details result={result} />}
 
-      <div className="flex flex-wrap gap-3">
-        {verdict === 'UNABLE_TO_VERIFY' && (
+      <div className="flex flex-wrap gap-2">
+        {isUnable && (
           <button type="button" onClick={onCheckAgain} className={primaryButton}>
             Check again
           </button>
         )}
-        <button
-          type="button"
-          onClick={onHome}
-          className={verdict === 'UNABLE_TO_VERIFY' ? secondaryButton : primaryButton}
-        >
+        <button type="button" onClick={onHome} className={isUnable ? secondaryButton : primaryButton}>
           Check another link
         </button>
       </div>

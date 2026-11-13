@@ -26,11 +26,11 @@ describe('VerdictBadge', () => {
     expect(ALL_VERDICTS.sort()).toEqual(Object.keys(LABELS).sort())
   })
 
-  test.each(Object.entries(LABELS))('%s shows the word "%s" and an icon', (verdict, label) => {
+  test.each(Object.entries(LABELS))('%s shows the word "%s"', (verdict, label) => {
     const { container } = render(<VerdictBadge verdict={verdict as keyof typeof LABELS} />)
+    // The word carries the meaning, never colour alone; no icons (D79).
     expect(screen.getByText(label)).toBeDefined()
-    // word + icon, never colour alone; the icon is decorative for screen readers
-    expect(container.querySelector('svg[aria-hidden="true"]')).not.toBeNull()
+    expect(container.querySelector('svg')).toBeNull()
   })
 
   test('"No issues in the checked part" never looks like "Safe"', () => {
@@ -56,7 +56,9 @@ describe('HexStrip', () => {
     )
     const marks = [...container.querySelectorAll('mark')].map((m) => m.textContent)
     expect(marks).toEqual(['4d', '5a'])
-    expect(container.querySelectorAll('mark, p[aria-label] > span')).toHaveLength(16)
+    // two rows of eight byte cells
+    expect(container.querySelectorAll('[aria-label="First bytes"] > div')).toHaveLength(2)
+    expect(container.querySelectorAll('[aria-label="First bytes"] > div > *')).toHaveLength(16)
     expect(screen.getByText('Highlighted: MZ (Windows executable)')).toBeDefined()
   })
 

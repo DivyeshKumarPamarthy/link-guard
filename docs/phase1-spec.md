@@ -410,7 +410,7 @@ Visual design, tokens, layouts and copy rules: `docs/ui-style-guide.md` (authori
 
 - Home: link input, submit, example links (demo profile only), short "what we check" text.
 - Submit → `POST`, then poll `GET /api/scans/{id}` every `poll_after_ms` (backoff to 2 s), show elapsed time; disable submit while in flight.
-- Report: verdict band (text + icon, never colour alone), headline, the "claimed vs actual" panel with the 16-byte hex strip and highlighted signature, score, confidence, scope label, reasons (severity icon + message; unknown codes → generic card), file info (claimed vs detected), redirect chain (URL as plain text with copy button, status, address class), timings, engine and rules version.
+- Report: verdict band (verdict word, never colour alone; no icons, D79), headline, the "claimed vs actual" panel with the 16-byte hex strip and highlighted signature, score, confidence, scope label, reasons (severity word + message; unknown codes → generic card), file info (claimed vs detected), redirect chain (URL as plain text with copy button, status, address class), timings, engine and rules version.
 - Distinct screens: REJECTED (why the target cannot be scanned, no internal details), UNSUPPORTED (named link type), UNABLE_TO_VERIFY (neutral colour, states why), backend unreachable / 503 busy / 500.
 - Recent scans (P1, optional): the last 20 `{scan_id, url, display_verdict, time}` kept in the browser's localStorage only, with a "clear" button. No backend history.
 - Security: no `dangerouslySetInnerHTML`; scanned URLs never clickable; long values truncated in the middle with expand; control/bidi characters shown escaped (e.g. `\u202E`); IDN shows both forms.

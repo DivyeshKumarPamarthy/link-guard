@@ -1,14 +1,11 @@
-// Small pill: icon + verdict word. Never colour alone (style guide rule).
+// Small tag with the verdict word. The word carries the meaning, never colour alone.
 import type { DisplayVerdict } from '../api/contract.ts'
 import { VERDICTS } from './verdicts.ts'
 
 export function VerdictBadge({ verdict }: { verdict: DisplayVerdict }) {
-  const { label, Icon, text, tint } = VERDICTS[verdict]
+  const { label, text, tint } = VERDICTS[verdict]
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-badge px-3 py-1 text-small font-medium ${text} ${tint}`}
-    >
-      <Icon aria-hidden="true" size={16} strokeWidth={2} className="shrink-0" />
+    <span className={`inline-block rounded-badge px-2 py-0.75 text-small font-semibold ${text} ${tint}`}>
       {label}
     </span>
   )
