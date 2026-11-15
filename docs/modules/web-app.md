@@ -1,6 +1,6 @@
 # Module: Web app screens, submit and polling (M6, task T1.6)
 
-Owner: Divyesh (track C, D16) · Reviewer: TBD · Phase: B · Last updated: 2026-10-24
+Owner: Divyesh (track C, D16) · Reviewer: TBD · Phase: B · Last updated: 2026-11-14
 
 ## What it does (2–3 sentences, plain language)
 
@@ -17,7 +17,7 @@ report, unable to verify, rejected, unsupported, or an error/busy screen.
 
 1. `App.tsx` holds one `Screen` value: `home`, `checking`, `report` or `error`.
 2. Submit → `submitScan()` (`api/client.ts`) POSTs the raw text; the backend cleans and validates it.
-3. `pollUntilDone()` (`api/poll.ts`) waits `poll_after_ms`, GETs the scan, and repeats with the wait ×1.5 up to 2 s until `state` is `done`.
+3. `pollUntilDone()` (`api/poll.ts`) waits `poll_after_ms`, GETs the scan, and repeats with the wait ×1.5 up to 2 s until `state` is `done`. After 3 minutes of waiting in total (`MAX_POLL_TOTAL_MS`, D83) it stops with a server error, so a lost scan never shows "Checking…" for ever.
 4. Every failure becomes an `ApiError` with a `kind`: `input` (our own 400 message, shown under the input), `unreachable` (fetch threw), `busy` (503), `server` (500, 404, unreadable JSON, unknown schema major).
 5. `ReportScreen` picks the layout from `display_verdict` only (D4): band + headline, then claimed vs actual, why, where the link went, and collapsed details for scanned results; hints for unable (`screens/hints.ts`, keyed by reason code, D33); the "protects your network" note for rejected.
    The report (T2.6, spec §10): claimed vs actual shows the claimed name with where it came from (`name_source`), the content type, the detected label with its confidence, and the 16-byte hex strip with the signature bytes highlighted; Details shows final site and address, link type, what was read, signals not checked, confidence, score, timings and engine/rules versions.
@@ -37,7 +37,7 @@ report, unable to verify, rejected, unsupported, or an error/busy screen.
 
 ## How it is tested (test files, acceptance rows it covers)
 
-- `src/api/poll.test.ts`: polls until done; backoff sequence 500, 750, 1125, 1688, 2000…; ceiling cap; an error stops polling.
+- `src/api/poll.test.ts`: polls until done; backoff sequence 500, 750, 1125, 1688, 2000…; ceiling cap; an error stops polling; a scan that never finishes ends in a server error at the 3-minute limit; a result arriving just before the limit is still returned.
 - `src/api/client.test.ts`: POST body and URL; unknown fields ignored; 400 input codes; unreachable; 503 busy; 500 / other 400 / non-JSON / 404 / schema 2.0 → server error.
 - `src/screens/HomeScreen.test.tsx`: demo links are off outside demo mode, hidden when none are passed, listed as buttons (never links) with their URLs, one click submits the URL, and every link points only at the demo server, the metadata address or a magnet link.
 - `src/screens/ReportScreen.test.tsx` (D80): the read / not-read bar (shown for a partial scan with a known size, hidden when the size is unknown or the verdict differs), "No findings.", the Details toggle with `aria-expanded`, and the tinted Actual cell only when the detected type is the problem.
@@ -53,7 +53,7 @@ report, unable to verify, rejected, unsupported, or an error/busy screen.
 - Not shown on purpose: `schema_version`, `scan_id`, `state`, `status` and `verdict` (the screen uses `display_verdict`, D4), `normalized_url`, the timestamps, the scope byte counts (the scope label says it in words), and each reason's weight, group and evidence (the message already says it).
 - Example links on Home (demo profile only, spec §10) are not shown yet: the web app has no way to know the backend profile.
 - The busy screen does not count down `Retry-After`; it only says to try again in a few seconds.
-- No client-side time limit while polling: it relies on the backend's overall scan timeout (T2.4).
+- The polling limit is a fixed 3 minutes in `src/config.ts`. It is not read from the backend, so it must be raised by hand if `LG_TOTAL_DEADLINE_S`, `LG_MAX_WAITING_SCANS` or `LG_MAX_CONCURRENT_SCANS` are raised (D83).
 - The `/` header link reloads the page, which is fine because nothing is kept between scans.
 
 ## Likely viva questions (and your short answers)

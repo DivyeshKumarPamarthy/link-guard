@@ -1,6 +1,6 @@
 // Polling waits, reads, and stops at state=done, backing off to a 2 s ceiling.
 import { expect, test } from 'vitest'
-import { MAX_POLL_DELAY_MS } from '../config.ts'
+import { MAX_POLL_DELAY_MS, MAX_POLL_TOTAL_MS } from '../config.ts'
 import { RUNNING, SCAN_ID, UNSAFE_DONE } from '../test/fixtures.ts'
 import { ApiError } from './client.ts'
 import type { ScanResult } from './contract.ts'
@@ -43,6 +43,31 @@ test('a poll_after_ms above the ceiling is capped', async () => {
 
 test('nextDelay never exceeds the ceiling', () => {
   expect(nextDelay(1900)).toBe(MAX_POLL_DELAY_MS)
+})
+
+test('gives up with a server error when the scan never finishes', async () => {
+  // A backend that restarted mid-scan answers "running" for ever (docs/limitations.md).
+  const waits: number[] = []
+  let asked = 0
+  const getScan = async () => {
+    asked += 1
+    return RUNNING
+  }
+  const wait = async (ms: number) => {
+    waits.push(ms)
+  }
+  await expect(pollUntilDone(SCAN_ID, 500, getScan, wait)).rejects.toMatchObject({ kind: 'server' })
+  const waited = waits.reduce((sum, ms) => sum + ms, 0)
+  expect(waited).toBeGreaterThanOrEqual(MAX_POLL_TOTAL_MS)
+  expect(waited).toBeLessThan(MAX_POLL_TOTAL_MS + MAX_POLL_DELAY_MS) // stops at the first wait past the limit
+  expect(asked).toBe(waits.length) // the last answer is still read before giving up
+})
+
+test('a scan that finishes just before the limit is still returned', async () => {
+  const stillRunning = Math.floor(MAX_POLL_TOTAL_MS / MAX_POLL_DELAY_MS) - 1
+  const { getScan, wait } = fakes([...Array<ScanResult>(stillRunning).fill(RUNNING), UNSAFE_DONE])
+  const result = await pollUntilDone(SCAN_ID, MAX_POLL_DELAY_MS, getScan, wait)
+  expect(result.state).toBe('done')
 })
 
 test('an error while polling stops polling (no automatic retry)', async () => {

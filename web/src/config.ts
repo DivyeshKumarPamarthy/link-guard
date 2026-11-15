@@ -9,6 +9,14 @@ export const MAX_POLL_DELAY_MS = 2000
 /** Each wait is this many times longer than the one before, up to MAX_POLL_DELAY_MS. */
 export const POLL_BACKOFF_FACTOR = 1.5
 
+/**
+ * Stop polling after waiting this long in total and show the error screen (D83). A healthy
+ * backend always finishes sooner: a scan ends within 22 s of starting (20 s deadline + 2 s),
+ * and with 4 running and 20 waiting the last one starts after about 5 x 22 s, so about 132 s
+ * at worst. A scan still "running" after 3 minutes was lost, e.g. the backend restarted.
+ */
+export const MAX_POLL_TOTAL_MS = 180_000
+
 /** Long URLs are shown shortened in the middle to this many characters, with an expand button. */
 export const URL_DISPLAY_CHARS = 60
 
