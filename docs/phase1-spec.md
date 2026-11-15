@@ -173,6 +173,17 @@ the registry. No reasons + SAFE → "No problems found in the whole file". NO_IS
 | `LG_CORS_ORIGINS` | `*` | `allow_credentials=False` always |
 | `LG_DATABASE_URL` | `sqlite:///./linkguard.db` | `PRAGMA journal_mode=WAL` on connect; nothing else |
 | `LG_USER_AGENT` | `LinkGuard/1.0 (link safety checker)` | Fixed, honest |
+| `LG_EXECUTOR` | `inprocess` | `inprocess | mock`; `mock` returns a fixed result without touching the network (D78) |
+| `LG_BUSY_RETRY_AFTER_S` | 5 | `Retry-After` header on 503 `SERVER_BUSY` (D78) |
+| `LG_API_PORT` | 8000 | Port the API listens on (D23) |
+| `LG_MAX_REQUEST_BYTES` | 8192 | A larger request body → `413` (D23) |
+| `LG_POLL_AFTER_MS` | 500 | `poll_after_ms` in the `202` response (D23) |
+| `LG_MOCK_DELAY_MS` | 300 | `LG_EXECUTOR=mock` only: delay before the fixed result (D23) |
+| `LG_ZIP_MAX_ENTRIES` | 10000 | §7: ZIP entry names listed at most (D37) |
+| `LG_TEXT_SAMPLE_BYTES` | 4096 | §7: bytes looked at when deciding "is this text?" (D37) |
+| `LG_TEXT_MIN_PRINTABLE_RATIO` | 0.95 | §7: share of printable characters needed for text (D37) |
+| `LG_SUSPICIOUS_SCORE` | 30 | §9: score at or above this → `SUSPICIOUS` (D62) |
+| `LG_UNSAFE_SCORE` | 60 | §9: score at or above this → `UNSAFE`; startup fails unless it is above `LG_SUSPICIOUS_SCORE` (D62) |
 | `LG_STATIC_HOSTS` | empty | `test`/`demo` only: `name=ip` pairs used by the resolver before DNS |
 | `LG_SSRF_EXEMPT` | empty | `test`/`demo` only: `host:port` pairs allowed to resolve non-public |
 | `LG_EXTRA_CA_BUNDLE` | empty | `test`/`demo` only: path to the local test CA |
@@ -410,7 +421,7 @@ Visual design, tokens, layouts and copy rules: `docs/ui-style-guide.md` (authori
 
 - Home: link input, submit, example links (demo profile only), short "what we check" text.
 - Submit → `POST`, then poll `GET /api/scans/{id}` every `poll_after_ms` (backoff to 2 s), show elapsed time; disable submit while in flight.
-- Report: verdict band (verdict word, never colour alone; no icons, D79), headline, the "claimed vs actual" panel with the 16-byte hex strip and highlighted signature, score, confidence, scope label, reasons (severity word + message; unknown codes → generic card), file info (claimed vs detected), redirect chain (URL as plain text with copy button, status, address class), timings, engine and rules version.
+- Report: verdict band (verdict word, never colour alone; no icons, D79), headline, the "claimed vs actual" panel with the 16-byte hex strip and highlighted signature, score, confidence, scope label, reasons (severity word + message; unknown codes → generic card), file info (claimed vs detected), redirect chain (each hop's URL in full as plain text, status, address class; the "Copy URL" button is on the pasted link, D80), timings, engine and rules version.
 - Distinct screens: REJECTED (why the target cannot be scanned, no internal details), UNSUPPORTED (named link type), UNABLE_TO_VERIFY (neutral colour, states why), backend unreachable / 503 busy / 500.
 - Recent scans (P1, optional): the last 20 `{scan_id, url, display_verdict, time}` kept in the browser's localStorage only, with a "clear" button. No backend history.
 - Security: no `dangerouslySetInnerHTML`; scanned URLs never clickable; long values truncated in the middle with expand; control/bidi characters shown escaped (e.g. `\u202E`); IDN shows both forms.
