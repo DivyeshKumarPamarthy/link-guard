@@ -1,8 +1,7 @@
 # LinkGuard developer commands (see CLAUDE.md "Commands").
-# Targets not built yet exit with an error that names the task that will build them,
-# so a stub can never look like a passing step.
+# `make demo` is the one-command local demo; `make dev` is the Docker development stack.
 
-.PHONY: setup dev demo-server test test-backend test-web test-demo test-ssrf test-e2e samples \
+.PHONY: setup dev demo demo-server test test-backend test-web test-demo test-ssrf test-e2e samples \
 	openapi check-openapi lint lint-backend lint-web lint-demo test-loop
 
 setup:  ## Install backend + demo (uv, from uv.lock) and web (npm, from package-lock.json)
@@ -58,6 +57,12 @@ test-loop:  ## Unit tests for the automation loop (scripts/loop.py), standard li
 
 dev:  ## docker compose: api :8000, web :5173, demo :8081/:8443/:8444, all on 127.0.0.1 only
 	docker compose up --build
+
+# The demo (T4.2): three local programs, no Docker, no internet. UV_OFFLINE stops uv from
+# looking anything up online, also while generating the samples; run `make setup` once first.
+demo: export UV_OFFLINE = 1
+demo: samples  ## One command: demo server + API (demo profile) + web app with the demo links
+	sh scripts/demo.sh
 
 test-ssrf:  ## SSRF table only (fake resolver, socket guard; no network)
 	cd backend && uv run pytest tests/ssrf -q

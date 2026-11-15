@@ -1,6 +1,6 @@
 # Module: Localhost-only exposure and docker-compose (X3/X4, task T2.5)
 
-Owner: TBD · Reviewer: TBD · Phase: A · Last updated: 2026-10-24
+Owner: TBD · Reviewer: TBD · Phase: A · Last updated: 2026-11-14
 
 ## What it does (2–3 sentences, plain language)
 
@@ -8,6 +8,12 @@ Keeps the backend reachable from this machine only. Run directly, the API binds 
 run with `make dev` (Docker Compose), the API, web app and demo server publish their ports on
 `127.0.0.1` only. A test fails if anyone changes the compose file to publish a port on every
 network interface.
+
+`make dev` is the development stack, not the demo: its API runs in the `dev` profile, which
+refuses the demo server's ports and private address. The demo is `make demo`
+(`scripts/demo.sh`): the same three programs started locally, without Docker, with the API in
+the `demo` profile (`demo/demo.env`) and every listener on `127.0.0.1`
+(`backend/tests/unit/test_demo_command.py`).
 
 ## Inputs and outputs
 - Input: `docker-compose.yml`, `backend/Dockerfile`, `web/Dockerfile`, `demo/Dockerfile`.
