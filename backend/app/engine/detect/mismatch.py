@@ -34,6 +34,9 @@ EXECUTABLE_CLAIMS: dict[str, frozenset[str]] = {
 # Scripts and plain text have no magic bytes: the only thing we can confirm is "text".
 TEXT_CLAIMS = frozenset({"txt", "csv", "json", "xml", "js", "ps1", "bat", "cmd", "vbs", "hta"})
 
+# The text claims that run code: text with one of these names is a script (TYPE_IS_PROGRAM, D86).
+SCRIPT_EXTENSIONS = frozenset({"js", "ps1", "bat", "cmd", "vbs", "hta"})
+
 # Formats we can detect, each with the detected types its extension allows.
 DETECTABLE_CLAIMS: dict[str, frozenset[str]] = {
     **EXECUTABLE_CLAIMS,
@@ -361,6 +364,25 @@ def check_exec_probable(detection: Detection) -> list[Finding]:
     return []
 
 
+def check_is_program(detection: Detection, ext: str | None) -> list[Finding]:
+    """Say plainly that the file is a program or a script (info only, D86).
+
+    A genuine `setup.exe` is exactly what it claims to be, so no mismatch check fires and the
+    verdict is "Safe". That word must not be read as "harmless to run": LinkGuard never runs
+    a file or studies what it does. This reason says so in the report, without changing the
+    verdict or the score.
+
+    Programs are recognised by their bytes, so a missing or unlisted extension (`download`,
+    `photo.svg`) is covered too. Scripts have no magic bytes: text whose name ends in a
+    script extension is all we can know.
+    """
+    if detection.family is Family.executable:
+        return [Finding("TYPE_IS_PROGRAM", {"kind": "program"})]
+    if detection.type == "text" and ext in SCRIPT_EXTENSIONS:
+        return [Finding("TYPE_IS_PROGRAM", {"kind": "script"})]
+    return []
+
+
 def check_unknown_type(detection: Detection, data: bytes) -> list[Finding]:
     """Bytes we could not identify. An empty body is the fetcher's FETCH_EMPTY instead (D74)."""
     if detection.type == "unknown" and data:
@@ -376,7 +398,8 @@ def run_mismatch_checks(
     ext = claimed_extension(claim.compare) if claim else None
     content_media_type = media_type(content_type)
     findings: list[Finding] = []
-    findings += check_exec_mismatch(detection, ext)
+    exec_mismatch = check_exec_mismatch(detection, ext)
+    findings += exec_mismatch
     findings += check_text_mismatch(detection, ext, content_media_type)
     findings += check_other_mismatch(detection, ext)
     if claim:
@@ -386,5 +409,7 @@ def run_mismatch_checks(
     findings += check_content_type(detection, content_media_type)
     findings += check_polyglot(detection, data)
     findings += check_exec_probable(detection)
+    if not exec_mismatch:  # TYPE_MISMATCH_EXEC already says "is actually a program" (D86)
+        findings += check_is_program(detection, ext)
     findings += check_unknown_type(detection, data)
     return findings

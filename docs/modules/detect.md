@@ -1,6 +1,6 @@
 # Module: File-type detection and mismatch checks (M4, tasks T1.5 + T2.2)
 
-Owner: Divyesh (track B, D16) · Reviewer: TBD · Phase: B · Last updated: 2026-10-24
+Owner: Divyesh (track B, D16) · Reviewer: TBD · Phase: B · Last updated: 2026-11-15
 
 ## What it does (2–3 sentences, plain language)
 
@@ -66,6 +66,9 @@ Mismatch checks (T2.2, `mismatch.py`; each one a separate function returning fin
 12. `check_polyglot` (P1): image/media/PDF that also holds `PK\x03\x04`, or image/media with
     `%PDF-` in the first 1024 bytes → `TYPE_POLYGLOT` with the first offset. Info codes:
     `TYPE_EXEC_PROBABLE` (MZ-based probable only) and `TYPE_UNKNOWN` (non-empty, unidentified).
+13. `check_is_program` (D86): executable content under any name, or text with a script
+    extension (`js ps1 bat cmd vbs hta`) → info reason `TYPE_IS_PROGRAM` (`kind` = program or
+    script). Skipped when `TYPE_MISMATCH_EXEC` fired. It never changes the verdict or the score.
 
 ## Why it is designed this way (the decision and the simpler/harder alternative you rejected)
 
@@ -81,6 +84,9 @@ Mismatch checks (T2.2, `mismatch.py`; each one a separate function returning fin
 - A disguise gets one type code, not two: executable content is EXEC (never also OTHER), text
   is TEXT. The name codes (`EXT_*`) can add to it; the scorer only counts the highest weight
   per group (spec §9), so nothing is double-counted.
+- A genuine program is "Safe" because nothing is disguised, but "Safe" must not read as
+  "harmless to run". `TYPE_IS_PROGRAM` says so as an info line (D86). Rejected: a new verdict
+  or a weight for programs, which would flag every honest installer.
 - Polyglot rules are narrow (D73): a ZIP storing a PDF uncompressed has `%PDF-` near the start,
   so ZIPs are never searched for it.
 
@@ -93,7 +99,8 @@ unterminated quotes), hostile names (`../`, `\`, NUL, U+202E, trailing dots), an
 Generated samples are checked by `backend/tests/unit/test_detect_samples.py` (T2.6, see `samples.md`): every file `make samples` writes, genuine and disguised.
 
 `backend/tests/unit/test_mismatch.py` (T2.2): clean files of every format (with matching names
-and Content-Types) produce no mismatch codes; one or more positive and negative cases per check,
+and Content-Types) produce no mismatch codes (programs and scripts carry only the info reason
+`TYPE_IS_PROGRAM`); one or more positive and negative cases per check,
 including the plan's M4 edge rows (marked "edge:"); the full-scope ZIP refinement (real DOCX,
 plain ZIP, corrupt/truncated archive, over-cap listing, partial scope); and a check that every
 code emitted is in the registry with exactly its declared evidence keys.
@@ -109,6 +116,7 @@ code emitted is in the registry with exactly its declared evidence keys.
 
 ## Likely viva questions (and your short answers)
 
+- *A real `.exe` is shown as "Safe". Is that honest?* "Safe" means not disguised. We never run the file, so the report adds `TYPE_IS_PROGRAM`: "LinkGuard checks that a file is what it claims to be, not what a program does when run" (D86).
 - *Why trust bytes over the filename?* Anyone can rename a file; the format's own header is much harder to fake without breaking the file.
 - *Why is a bare `MZ` still an executable?* Risk evidence beats missing evidence; we say "probable", never "safe".
 - *Why only look in the first 1024 bytes for `%PDF-`?* PDF readers accept the header there, so an attacker can put it there too.
