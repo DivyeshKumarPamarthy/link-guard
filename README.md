@@ -29,22 +29,37 @@ make test      # runs backend (pytest) and web (vitest) tests
 `make samples` generates the harmless sample files the demo server serves into `samples/`
 (gitignored).
 
-`make dev` starts the API (<http://127.0.0.1:8000>), the web app (<http://127.0.0.1:5173>) and the
-demo server (:8081, :8443, :8444) with Docker Compose; it needs Docker Desktop. The API runs in
-the `dev` profile, so it cannot reach the demo server's private addresses.
+### Run the demo (one command, no Docker, no internet)
 
-Other targets (`test-e2e`, …) are listed in `CLAUDE.md`; until their task is done they print
-which task will build them and exit with an error.
+```zsh
+make demo      # then open http://127.0.0.1:5173 ; Ctrl-C stops everything
+```
 
-Web app: `cd web && npm run dev`, then open <http://localhost:5173/> (the dev-only style guide
-is at `/styleguide`).
+`make demo` generates the samples and starts three programs on this computer: the demo server
+(:8081, :8443, :8444), the API in the `demo` profile (<http://127.0.0.1:8000>) and the web app
+with a "Demo links" panel (<http://127.0.0.1:5173>). The demo settings are in `demo/demo.env`;
+the steps and expected results are in [`docs/demo-script.md`](docs/demo-script.md) (a draft until it is rehearsed).
+Run `make setup` once while online first. If a port is already in use, `make demo` names it and
+stops.
+
+### Other ways to run it
+
+`make dev` starts the API, the web app and the demo server with Docker Compose; it needs Docker
+Desktop. The API runs in the `dev` profile there, so it refuses the demo server's ports and
+private addresses and the demo links are not shown: use `make demo` for the demo.
+
+Every target (`test-e2e`, `test-ssrf`, `check-openapi`, …) is listed in `CLAUDE.md`.
+
+Web app alone: `cd web && npm run dev`, then open <http://localhost:5173/> (the dev-only style
+guide is at `/styleguide`).
 
 Configuration comes from environment variables; see `.env.example`. Never commit `.env`.
 
-Run the API (mock scanner for now): `cd backend && uv run python -m app`, then open
-<http://127.0.0.1:8000/docs>. Scans are stored in `backend/linkguard.db`, **including the full
-links you submit**. Signed links (`?token=…`) keep their secrets there; logs show them as
-`REDACTED`. Delete the file to clear it.
+API alone: `cd backend && uv run python -m app`, then open <http://127.0.0.1:8000/docs>. It runs
+the real scanner in the `dev` profile (`LG_EXECUTOR=mock` swaps in a fake one for web work).
+Scans are stored in `backend/linkguard.db`, **including the full links you submit**. Signed
+links (`?token=…`) keep their secrets there; logs show them as `REDACTED`. Delete the file to
+clear it.
 
 ## Localhost only
 
