@@ -28,6 +28,7 @@ SPEC_TABLE = {
     "LINK_CLOUD_SHARE_PAGE": ("link", 0, "info", "info"),
     "TYPE_EXEC_PROBABLE": ("detect", 0, "info", "info"),
     "TYPE_UNKNOWN": ("detect", 0, "info", "info"),
+    "TYPE_IS_PROGRAM": ("detect", 0, "info", "info"),
     "SCAN_PARTIAL": ("scope", 0, "info", "info"),
     "FETCH_UNEXPECTED_ENCODING": ("fetch", 0, "info", "info"),
     "LINK_IS_WEB_PAGE": ("link", 0, "info", "unable"),

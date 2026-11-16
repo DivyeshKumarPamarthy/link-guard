@@ -1,0 +1,11 @@
+{
+  "status": "completed",
+  "verdict": "SAFE",
+  "display_verdict": "SAFE",
+  "score": 0,
+  "confidence": "high",
+  "scope_mode": "full",
+  "scope_label": "Whole file checked (47 KB)",
+  "headline": "This file is a program: LinkGuard checked that it is not disguised, not what it does when run",
+  "reason_codes": ["TYPE_IS_PROGRAM"]
+}

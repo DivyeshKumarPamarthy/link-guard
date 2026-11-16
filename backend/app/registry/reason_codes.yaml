@@ -147,6 +147,15 @@ codes:
     message: "The file starts like a Windows program (MZ), but the full program header was not in the part that was read."
     headline: "The file is probably a Windows program"
 
+  TYPE_IS_PROGRAM:  # decision D86: "Safe" must not be read as "harmless to run"
+    group: detect
+    weight: 0
+    severity: info
+    outcome: info
+    evidence: [kind]  # "program" (recognised by its bytes) or "script" (text with a script name)
+    message: "This file is a {kind}. LinkGuard checks that a file is what it claims to be, not what a {kind} does when run."
+    headline: "This file is a {kind}: LinkGuard checked that it is not disguised, not what it does when run"
+
   TYPE_UNKNOWN:
     group: detect
     weight: 0

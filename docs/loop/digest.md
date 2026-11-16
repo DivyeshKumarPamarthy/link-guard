@@ -122,3 +122,16 @@ Answered by Divyesh (2026-11-15): yes to all.
 - `docs/demo-script.md`: the session drafts the steps and expected results from a live run; the team writes what to say and rehearses it (T4.2 stays unticked)
 - Both `docs/phase1-spec.md` sync edits made: 11 config variables added to §4, §10's redirect-chain text matches D80
 - "Safe" for a real program: keep the verdict, add one info-level reason for program and script content (D86, decided); it is its own task and its tests are shown first
+
+## 2026-11-15
+
+### TYPE_IS_PROGRAM · task/T4.1-program-reason · interactive session (D86)
+
+Divyesh approved the test table before the code was written. Tests first: a new
+`TYPE_IS_PROGRAM` section in `test_mismatch.py`, one row in the registry spec-table test, two
+golden cases (backend suite: 1244 passed). One
+existing expectation changed: a spoofed `.exe` name now also carries the info reason. The
+acceptance matrix and the contract are unchanged. Checked live against the demo server:
+`sample.exe`, `sample.elf`, `sample.bat` and `sample.js` are Safe with the new headline;
+`sample.pdf` has no reasons; `invoice.pdf.exe` keeps its headline and gains the info row;
+`movie.mp4` (a disguised program) does not get the new reason.

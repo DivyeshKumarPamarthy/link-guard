@@ -19,6 +19,7 @@ from app.engine.detect.mismatch import (
     check_double_extension,
     check_exec_mismatch,
     check_exec_probable,
+    check_is_program,
     check_other_mismatch,
     check_polyglot,
     check_risky_extension,
@@ -149,19 +150,33 @@ CLEAN = [
 ]
 
 
+# The clean cases that are programs or scripts: they get the info reason TYPE_IS_PROGRAM
+# (D86), which says what the file is. It is not a mismatch code and adds no score.
+CLEAN_PROGRAMS = {
+    "pe": "program",
+    "pe-dll": "program",
+    "elf": "program",
+    "macho": "program",
+    "java-class": "program",
+    "text-ps1": "script",
+}
+
+
 @pytest.mark.parametrize(
-    ("data", "name", "content_type", "full_scope"),
-    [case[1:] for case in CLEAN],
+    ("case_id", "data", "name", "content_type", "full_scope"),
+    CLEAN,
     ids=[case[0] for case in CLEAN],
 )
-def test_clean_files_of_every_format_produce_no_codes(
-    data: bytes, name: str, content_type: str | None, full_scope: bool
+def test_clean_files_of_every_format_produce_no_mismatch_codes(
+    case_id: str, data: bytes, name: str, content_type: str | None, full_scope: bool
 ) -> None:
     findings = run(data, name, content_type, full_scope)
     if name.endswith(".jar"):
         # A genuine JAR is consistent, but .jar is on the spec's risky-name list: that
         # name-based reason is expected, and no mismatch code is.
         assert findings == [Finding("EXT_RISKY", {"ext": "jar"})]
+    elif case_id in CLEAN_PROGRAMS:
+        assert findings == [Finding("TYPE_IS_PROGRAM", {"kind": CLEAN_PROGRAMS[case_id]})]
     else:
         assert findings == []
 
@@ -425,7 +440,9 @@ def test_no_spoofed_name(name: str) -> None:
 
 def test_spoofed_name_runs_on_the_display_form() -> None:
     findings = run(pe_file(), SPOOFED)
-    assert codes(findings) == ["EXT_SPOOFED_NAME"]
+    # The file really is a program named .exe, so the info reason TYPE_IS_PROGRAM (D86)
+    # sits beside the name warning.
+    assert codes(findings) == ["EXT_SPOOFED_NAME", "TYPE_IS_PROGRAM"]
 
 
 # --- TYPE_CONTENT_TYPE_MISMATCH -----------------------------------------------------------
@@ -563,6 +580,65 @@ def test_no_exec_probable(data: bytes) -> None:
     assert check_exec_probable(detect(data)) == []
 
 
+# --- TYPE_IS_PROGRAM (D86): say plainly that the file is a program or a script -------------
+
+IS_PROGRAM = [Finding("TYPE_IS_PROGRAM", {"kind": "program"})]
+IS_SCRIPT = [Finding("TYPE_IS_PROGRAM", {"kind": "script"})]
+
+
+@pytest.mark.parametrize("data", [pe_file(), ELF, MACHO, CAFEBABE, b"MZ" + bytes(10)])
+@pytest.mark.parametrize("ext", ["exe", "so", None, "svg", "html", "dat"])
+def test_is_program_for_executable_content_under_any_name(data: bytes, ext: str | None) -> None:
+    """It keys on what the bytes are, so a missing or unlisted extension is covered too."""
+    assert check_is_program(detect(data), ext) == IS_PROGRAM
+
+
+@pytest.mark.parametrize("ext", ["js", "ps1", "bat", "cmd", "vbs", "hta"])
+def test_is_program_for_text_with_a_script_extension(ext: str) -> None:
+    """Scripts have no magic bytes: text plus a script extension is all we can know."""
+    assert check_is_program(detect(TEXT), ext) == IS_SCRIPT
+
+
+@pytest.mark.parametrize(
+    ("data", "ext"),
+    [
+        (TEXT, "txt"),
+        (TEXT, "csv"),
+        (TEXT, "pdf"),  # text named .pdf is TYPE_MISMATCH_TEXT, not a script
+        (TEXT, None),
+        (PDF, "pdf"),
+        (png_file(), "png"),
+        (PLAIN_ZIP, "zip"),
+        (JAR, "jar"),  # an archive: its name-based EXT_RISKY reason already warns
+        (OLE, "msi"),  # OLE cannot be told apart from a legacy Office file (spec §7)
+        (UNKNOWN_BYTES, "exe"),  # the name alone proves nothing
+        (png_file(), "bat"),  # binary content is not a script, whatever the name says
+    ],
+)
+def test_no_is_program(data: bytes, ext: str | None) -> None:
+    assert check_is_program(detect(data), ext) == []
+
+
+def test_full_run_genuine_program_under_an_unlisted_or_missing_name() -> None:
+    assert run(pe_file(), "photo.svg", "application/octet-stream", full_scope=True) == IS_PROGRAM
+    assert run(pe_file(), "download", None, full_scope=True) == IS_PROGRAM
+    assert run(pe_file(), None, None, full_scope=True) == IS_PROGRAM
+
+
+def test_full_run_disguised_executable_does_not_repeat_itself() -> None:
+    """TYPE_MISMATCH_EXEC already says "is actually a Windows executable"."""
+    assert "TYPE_IS_PROGRAM" not in codes(run(pe_file(), "movie.mp4", "video/mp4"))
+
+
+def test_full_run_program_reason_sits_beside_other_reasons() -> None:
+    assert codes(run(pe_file(), "invoice.pdf.exe")) == ["EXT_DOUBLE", "TYPE_IS_PROGRAM"]
+    assert codes(run(b"MZ" + bytes(10), "setup.exe")) == ["TYPE_EXEC_PROBABLE", "TYPE_IS_PROGRAM"]
+    assert codes(run(TEXT, "run.vbs")) == ["EXT_RISKY", "TYPE_IS_PROGRAM"]
+
+
+# --- TYPE_UNKNOWN -------------------------------------------------------------------------
+
+
 @pytest.mark.parametrize("data", [UNKNOWN_BYTES, b"PK", b"\x89P"])
 def test_unknown_type(data: bytes) -> None:
     # edge: shorter than the signature → informational reason
@@ -642,6 +718,7 @@ def every_kind_of_finding() -> list[Finding]:
         *check_content_type(detect(pe_file()), "image/jpeg"),
         *check_polyglot(detect(png_file(b"PK\x03\x04")), png_file(b"PK\x03\x04")),
         *check_exec_probable(detect(b"MZ" + bytes(10))),
+        *check_is_program(detect(pe_file()), "exe"),
         *check_unknown_type(detect(UNKNOWN_BYTES), UNKNOWN_BYTES),
     ]
 
@@ -649,7 +726,7 @@ def every_kind_of_finding() -> list[Finding]:
 def test_every_check_emits_a_registered_code_with_its_declared_evidence() -> None:
     registry = load_registry().codes
     findings = every_kind_of_finding()
-    assert len({finding.code for finding in findings}) == 10
+    assert len({finding.code for finding in findings}) == 11
     for finding in findings:
         assert finding.code in registry
         assert set(finding.evidence) == set(registry[finding.code].evidence), finding.code

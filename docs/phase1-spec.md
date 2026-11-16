@@ -334,6 +334,7 @@ Checks (each a separate function, each emits registry codes):
 - Content-Type contradicts detected type → `TYPE_CONTENT_TYPE_MISMATCH`
 - second signature at a plausible offset → `TYPE_POLYGLOT` (P1)
 - MZ without valid PE header in buffer → `TYPE_EXEC_PROBABLE` (info) and still family executable
+- executable content (any claimed name, or none), or text whose name ends in a script extension (`.js .ps1 .bat .cmd .vbs .hta`) → `TYPE_IS_PROGRAM` (info, D86), unless `TYPE_MISMATCH_EXEC` already fired. It tells the user that "Safe" means "not disguised", not "harmless to run"
 - too short to detect → `TYPE_UNKNOWN` (info)
 
 ## 8. Reason-code registry (X2)
@@ -378,6 +379,7 @@ Phase 1 codes and starter weights (hypotheses; tuned in Phase 4 only):
 | LINK_CLOUD_SHARE_PAGE | link | 0 | info | info | P1 |
 | TYPE_EXEC_PROBABLE | detect | 0 | info | info | |
 | TYPE_UNKNOWN | detect | 0 | info | info | |
+| TYPE_IS_PROGRAM | detect | 0 | info | info | new (D86): the file is a program or a script; evidence `{kind}` |
 | SCAN_PARTIAL | scope | 0 | info | info | |
 | FETCH_UNEXPECTED_ENCODING | fetch | 0 | info | info | forces confidence low, scope partial |
 | LINK_IS_WEB_PAGE | link | 0 | info | unable | |
