@@ -97,3 +97,28 @@ Escalated, answered by Divyesh (2026-10-21):
 The parked work passed its verify (206 tests); the loop's review ran out of budget ($8.03).
 Review fixes: the EXT_DOUBLE sets now hold every D71 extension (msi; zip, rar, 7z) with a test,
 and `unknown` detections are skipped explicitly in TYPE_MISMATCH_OTHER (D77).
+
+## 2026-11-14
+
+### Audit fixes · fix/audit-sprint4 · interactive session, uncommitted, waiting for Divyesh
+
+Divyesh asked for the five fixes the read-only audit recommended first. Mentor consulted once.
+
+| Question | Decision | Rationale |
+| --- | --- | --- |
+| Where is punctuation-only input refused? | In `create_scan`: `clean_url()` as a check after `check_submission()`; 400 `URL_EMPTY`, no scan (D82) | Spec §2; one cleaner, no contract change |
+| Polling limit in the web app? | `MAX_POLL_TOTAL_MS = 180000`, existing server-error screen (D83) | Tunable default; worst healthy case is about 132 s |
+| One branch or several? | Uncommitted on one branch now; later one commit per fix and T4.2 on its own branch (D84) | One task per branch/PR |
+
+Escalated to Divyesh (not yet answered):
+
+- "Safe" for a genuine program or script, and for a program under an unlisted or missing extension: documented as a limitation and a viva question only (D86, open)
+- `make demo` as three local programs is built and tested but needs his confirmation; whether he wants a `docs/demo-script.md` draft from the session or writes it with the team (D85, open)
+- Two sync edits to `docs/phase1-spec.md` are held: add the 11 config variables already decided in D23, D37, D62 and D78 to §4, and reword §10's redirect-chain text to match D80
+
+Answered by Divyesh (2026-11-15): yes to all.
+
+- `make demo` as three local programs is kept (D85, decided); `CLAUDE.md`'s command list has the new line
+- `docs/demo-script.md`: the session drafts the steps and expected results from a live run; the team writes what to say and rehearses it (T4.2 stays unticked)
+- Both `docs/phase1-spec.md` sync edits made: 11 config variables added to §4, §10's redirect-chain text matches D80
+- "Safe" for a real program: keep the verdict, add one info-level reason for program and script content (D86, decided); it is its own task and its tests are shown first

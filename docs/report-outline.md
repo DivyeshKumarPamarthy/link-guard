@@ -88,6 +88,7 @@ URL shorteners and malicious redirects.
 | How did you test it without real malware? | Generated harmless samples and disguised copies, local demo server imitating good/bad/broken servers |
 | What did each team member build? | Each owner explains their module from their note |
 | How do you stop the scanner being used to attack your own network? | SSRF checks on resolved IPs at every hop; demo exemptions only exact host:port in test/demo profiles, refused at startup otherwise |
+| A real .exe shows "Safe". Is that not wrong? | "Safe" means the whole file was read and nothing was disguised: the name, the headers and the real type agree. It does not mean "harmless to run": LinkGuard never runs or inspects a program's behaviour (limitation). The report still shows "Actual: Windows executable". Also: a program under an extension outside our tables, or with no extension, gives no mismatch (D68). Decided (D86): an info reason will say "this is a program" |
 | What stops a wrong "Safe"? | Contract validator refuses plain SAFE for partial or low-confidence scans; crashes become Unable to verify (ANALYSIS_ERROR) |
 | How do backend and web app agree on the data format? | Pydantic models → OpenAPI → generated TypeScript types; CI fails if they drift |
 | Is the UI accessible? | The verdict word for every verdict, never colour alone; contrast computed from the real CSS in tests (WCAG AA); keyboard focus ring |

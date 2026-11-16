@@ -1,6 +1,6 @@
 # Module: API and mock scanner (M1 + X1, task T0.7)
 
-Owner: Divyesh (track B, D16) · Reviewer: TBD · Phase: A · Last updated: 2026-10-19
+Owner: Divyesh (track B, D16) · Reviewer: TBD · Phase: A · Last updated: 2026-11-14
 
 ## What it does (2–3 sentences, plain language)
 
@@ -19,7 +19,9 @@ can be built against the real API before the engine exists.
    bytes of chunked bodies as they arrive, raising 413 if the total goes over.
 2. FastAPI parses JSON into `ScanRequest`; malformed JSON or a non-string `url` → 400 `INVALID_REQUEST`.
 3. `check_submission()`: trim; empty → `URL_EMPTY`; over `LG_MAX_URL_LENGTH` → `URL_TOO_LONG`;
-   two or more link-like tokens → `URL_MULTIPLE`. No scan is created on any of these.
+   two or more link-like tokens → `URL_MULTIPLE`. Then the router's `clean_url()` runs as a
+   check only (D82): text that is nothing but quotes and punctuation (`...`, `(,)`) is also
+   `URL_EMPTY`. No scan is created on any of these.
 4. `Orchestrator.submit()` writes a `queued` row and starts an asyncio task; the API replies 202.
 5. The task marks the row `running`, awaits `executor.run(url)` (plain JSON data back), merges the
    result into the scan and validates it against the contract, then stores `done`.
@@ -36,7 +38,7 @@ can be built against the real API before the engine exists.
 
 ## How it is tested (test files, acceptance rows it covers)
 
-`backend/tests/unit/test_api.py` (34): 202 → poll → done; not done before the mock delay; no
+`backend/tests/unit/test_api.py` (43): 202 → poll → done; punctuation-only text is `URL_EMPTY` with no scan row (D82); not done before the mock delay; no
 dedupe; unknown fields ignored; every 400 code including boundaries (exactly 2048 chars accepted,
 2049 refused, length measured after trimming); malformed bodies; 404 for unknown and malformed
 ids; 405 for the missing list endpoint; 413 declared and chunked; executor crash → ANALYSIS_ERROR

@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from app.__main__ import server_options
 from app.contract.models import ScanResult
 from app.core.config import Settings
+from app.db.models import ScanRow
 from app.main import build_executor, create_app
 from app.orchestrator.executor import InProcessExecutor
 from app.orchestrator.mock_executor import ExecutorOutput, MockExecutor
@@ -110,6 +111,22 @@ def test_empty_url_is_400(client: TestClient, url: str) -> None:
     response = client.post("/api/scans", json={"url": url})
     assert response.status_code == 400
     assert error_code(response) == "URL_EMPTY"
+
+
+@pytest.mark.parametrize("url", ["...", "!", '"."', "(,)", "]", " ., "])
+def test_punctuation_only_url_is_400_and_creates_no_scan(client: TestClient, url: str) -> None:
+    """Cleaning such text leaves no link at all, so it is "empty" (spec §2: no scan is
+    created). Before this check it was accepted and the scan ended as ANALYSIS_ERROR."""
+    response = client.post("/api/scans", json={"url": url})
+    assert (response.status_code, error_code(response)) == (400, "URL_EMPTY")
+    store = client.app.state.orchestrator.store  # type: ignore[attr-defined]
+    with store.session_factory() as session:
+        assert session.query(ScanRow).count() == 0
+
+
+def test_link_with_punctuation_around_it_is_still_accepted(client: TestClient) -> None:
+    response = client.post("/api/scans", json={"url": '"<https://x.example/a.pdf>".'})
+    assert response.status_code == 202
 
 
 def test_missing_url_field_is_url_empty(client: TestClient) -> None:

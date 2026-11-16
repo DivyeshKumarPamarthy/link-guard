@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from app.api.validation import check_submission
 from app.contract.models import ErrorBody, ScanAccepted, ScanRequest, ScanResult
 from app.core.config import Settings
+from app.engine.router.router import clean_url
 from app.orchestrator.scans import Orchestrator
 
 router = APIRouter(prefix="/api")
@@ -34,6 +35,11 @@ async def create_scan(payload: ScanRequest, request: Request) -> JSONResponse:
     settings: Settings = request.app.state.settings
     orchestrator: Orchestrator = request.app.state.orchestrator
     url = check_submission(payload.url, settings.max_url_length)
+    # Text such as "..." or "(,)" passes the check above, but the router's cleaning leaves
+    # nothing of it. Run that cleaning here, only as a check: it raises URL_EMPTY (a 400)
+    # before a scan exists, instead of failing later inside the scan. The scan still
+    # stores the text as the user typed it; the executor cleans it again.
+    clean_url(url, settings.max_url_length)
     queued = orchestrator.submit(url)
     accepted = ScanAccepted(
         scan_id=queued.scan_id, state=queued.state, poll_after_ms=settings.poll_after_ms
